@@ -2,21 +2,21 @@
 
 Thank you for your interest in contributing to SheetLink Recipes! This guide will help you create and submit recipes that the community can use.
 
-## 🎯 Recipe Guidelines
+## Recipe Guidelines
 
 ### Privacy & Security First
 
 **All recipes must:**
-- ✅ Run entirely within Google Apps Script (no external API calls)
-- ✅ Never send transaction data to external servers
-- ✅ Be fully auditable (clear, readable code)
-- ✅ Include no tracking, analytics, or telemetry
+- Run entirely within Google Apps Script (no external API calls)
+- Never send transaction data to external servers
+- Be fully auditable (clear, readable code)
+- Include no tracking, analytics, or telemetry
 
 **Prohibited:**
-- ❌ `UrlFetchApp` calls to external services
-- ❌ Obfuscated or minified code
-- ❌ Third-party libraries (unless well-known and security-audited)
-- ❌ Data collection or transmission
+- `UrlFetchApp` calls to external services
+- Obfuscated or minified code
+- Third-party libraries (unless well-known and security-audited)
+- Data collection or transmission
 
 ### Code Quality
 
@@ -25,7 +25,7 @@ Thank you for your interest in contributing to SheetLink Recipes! This guide wil
 - **Error Handling:** Graceful handling of missing data, invalid formats, etc.
 - **User Feedback:** Use `showToast()` or `showError()` to communicate with users
 
-## 📁 Recipe Structure
+## Recipe Structure
 
 Each recipe lives in its own directory:
 
@@ -169,7 +169,7 @@ List any limitations or edge cases users should be aware of.
 Questions? Open an issue at [github.com/sheetlink/sheetlink-recipes/issues](https://github.com/sheetlink/sheetlink-recipes/issues)
 ```
 
-## 🚀 Submission Process
+## Submission Process
 
 ### 1. Fork the Repository
 
@@ -226,15 +226,15 @@ Open a PR with:
 ### 5. Review Process
 
 We'll review your recipe for:
-- ✅ Privacy/security compliance (no external calls)
-- ✅ Code quality and readability
-- ✅ Error handling
-- ✅ Documentation completeness
-- ✅ Testing coverage
+- Privacy/security compliance (no external calls)
+- Code quality and readability
+- Error handling
+- Documentation completeness
+- Testing coverage
 
 We may request changes or improvements. Once approved, your recipe will be merged and available in the marketplace!
 
-## 💡 Recipe Ideas
+## Recipe Ideas
 
 Looking for inspiration? Here are some recipe ideas the community might love:
 
@@ -256,23 +256,23 @@ Looking for inspiration? Here are some recipe ideas the community might love:
 - **Merchant Analysis** - Top merchants by spend with trends
 - **Account Reconciliation** - Match transactions across accounts
 
-## 🤝 Community
+## Community
 
 - **Discussions:** [GitHub Discussions](https://github.com/sheetlink/sheetlink-recipes/discussions)
 - **Issues:** [Report bugs or request features](https://github.com/sheetlink/sheetlink-recipes/issues)
 - **Email:** recipes@sheetlink.app
 
-## 📜 Code of Conduct
+## Code of Conduct
 
 - Be respectful and inclusive
 - Provide constructive feedback
 - Focus on helping users solve real problems
 - Prioritize privacy and security
 
-## ⚖️ License
+## License
 
 By contributing, you agree to license your recipe under the MIT License.
 
 ---
 
-**Ready to contribute?** Fork the repo and start building! 🚀
+**Ready to contribute?** Fork the repo and start building!

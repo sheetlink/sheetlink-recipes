@@ -2,7 +2,7 @@
 
 Open-source financial analysis recipes for Google Sheets. Install pre-built budget trackers, cash flow forecasts, and business reporting tools directly into your spreadsheet.
 
-## 🎯 What are Recipes?
+## What are Recipes?
 
 Recipes are self-contained Google Apps Script files that add powerful financial analysis features to your SheetLink-powered spreadsheet. Each recipe:
 
@@ -11,9 +11,9 @@ Recipes are self-contained Google Apps Script files that add powerful financial 
 - **Works with your transaction data** - Analyzes data synced by SheetLink
 - **Adds custom menu items** - One-click execution from your spreadsheet
 
-## 📦 Available Recipes
+## Available Recipes
 
-### 💰 Budget Tracker
+### Budget Tracker
 Track spending vs budget by category with multi-month trending.
 
 **Outputs:** `Budget Monthly` sheet
@@ -22,7 +22,7 @@ Track spending vs budget by category with multi-month trending.
 
 ---
 
-### 💰 Budget Tracker (by Account)
+### Budget Tracker (by Account)
 Track spending by category broken down by individual accounts.
 
 **Outputs:** `Budget Monthly (by Account)` sheet
@@ -31,7 +31,7 @@ Track spending by category broken down by individual accounts.
 
 ---
 
-### 📊 Cash Flow Forecast
+### Cash Flow Forecast
 Weekly cash flow projection with income, expenses, and running balance.
 
 **Outputs:** `CashFlow Weekly` sheet
@@ -40,7 +40,7 @@ Weekly cash flow projection with income, expenses, and running balance.
 
 ---
 
-### 🔄 Recurring Spend Detector
+### Recurring Spend Detector
 Identify subscriptions and recurring charges with trends and annualized costs.
 
 **Outputs:** `Recurring Analysis` sheet
@@ -49,7 +49,7 @@ Identify subscriptions and recurring charges with trends and annualized costs.
 
 ---
 
-### 📈 Financial Statements Suite
+### Financial Statements Suite
 Professional financial reporting: Chart of Accounts, General Ledger, P&L, Balance Sheet, Cash Flow Statement.
 
 **Outputs:** `Chart of Accounts`, `General Ledger`, `Financial Statements` sheets
@@ -58,7 +58,7 @@ Professional financial reporting: Chart of Accounts, General Ledger, P&L, Balanc
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Option 1: Install via SheetLink Extension (Recommended)
 
@@ -80,18 +80,18 @@ Professional financial reporting: Chart of Accounts, General Ledger, P&L, Balanc
 7. Refresh your spreadsheet
 8. Look for the recipe menu item under **SheetLink Recipes**
 
-## 🔒 Privacy & Security
+## Privacy & Security
 
 SheetLink Recipes are designed with privacy first:
 
-- ✅ **All code runs in YOUR Google Sheet** - No data sent to external servers
-- ✅ **Fully open source** - Audit every line before installing
-- ✅ **No tracking or analytics** - We never see your financial data
-- ✅ **Standalone files** - No hidden dependencies or network calls
+- **All code runs in YOUR Google Sheet** - No data sent to external servers
+- **Fully open source** - Audit every line before installing
+- **No tracking or analytics** - We never see your financial data
+- **Standalone files** - No hidden dependencies or network calls
 
 The SheetLink extension only installs the code to your spreadsheet. It never reads your transaction data.
 
-## 🛠️ Development
+## Development
 
 ### Recipe Structure
 
@@ -113,25 +113,25 @@ We welcome community contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for g
 - Testing and submission process
 - Community recipe guidelines
 
-## 📋 Requirements
+## Requirements
 
 - **SheetLink Extension** - Syncs bank transactions to Google Sheets
 - **Transaction Data** - Recipes analyze your synced transaction history
 - **Google Apps Script** - Recipes run as Apps Script projects bound to your spreadsheet
 
-## 🆘 Support
+## Support
 
 - **Documentation:** [sheetlink.app/recipes](https://sheetlink.app/recipes)
 - **Issues:** [GitHub Issues](https://github.com/sheetlink/sheetlink-recipes/issues)
 - **Email:** support@sheetlink.app
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## 🙏 Credits
+## Credits
 
-Built with ❤️ by the SheetLink team.
+Built by the SheetLink team.
 
 Recipes powered by:
 - Google Apps Script
