@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-01-15",
+  "recipes": [
+    {
+      "id": "budget-tracker",
+      "name": "Budget Tracker",
+      "version": "2.1.0",
+      "author": "SheetLink",
+      "type": "official",
+      "description": "Track spending vs budget by category with multi-month trending",
+      "longDescription": "Monitor your spending against budgets across multiple months. Automatically calculates actuals from your transaction data, compares to budget targets, and shows variance. Perfect for personal budgeting and expense tracking.",
+      "requirements": {
+        "sheets": ["Transactions"],
+        "columns": ["date", "amount", "category_primary", "pending", "account_name"]
+      },
+      "outputs": ["Budget Monthly"],
+      "files": ["recipe.gs"],
+      "dependencies": [],
+      "menuName": "💰 Budget Tracker",
+      "entryFunction": "runBudgetRecipe",
+      "tags": ["budgeting", "spending", "categories"]
+    },
+    {
+      "id": "budget-by-account",
+      "name": "Budget Tracker (by Account)",
+      "version": "2.1.0",
+      "author": "SheetLink",
+      "type": "official",
+      "description": "Track spending by category broken down by account",
+      "longDescription": "Extended budget tracker that shows spending by category with a breakdown by account. See which accounts drive spending in each category. Includes multi-month trending and variance analysis.",
+      "requirements": {
+        "sheets": ["Transactions"],
+        "columns": ["date", "amount", "category_primary", "pending", "account_name"]
+      },
+      "outputs": ["Budget Monthly (by Account)"],
+      "files": ["recipe.gs"],
+      "dependencies": [],
+      "menuName": "💰 Budget Tracker (by Account)",
+      "entryFunction": "runBudgetByAccountRecipe",
+      "tags": ["budgeting", "spending", "accounts", "categories"]
+    },
+    {
+      "id": "cash-flow",
+      "name": "Cash Flow Forecast",
+      "version": "2.0.0",
+      "author": "SheetLink",
+      "type": "official",
+      "description": "Weekly cash flow projection with income, expenses, and running balance",
+      "longDescription": "See your cash flow week by week with income, expenses, net change, and projected ending balance. Configurable starting balance. Perfect for understanding your financial runway and cash position over time.",
+      "requirements": {
+        "sheets": ["Transactions"],
+        "columns": ["date", "amount", "pending"]
+      },
+      "outputs": ["CashFlow Weekly"],
+      "files": ["recipe.gs"],
+      "dependencies": [],
+      "menuName": "📊 Cash Flow Forecast",
+      "entryFunction": "runCashFlowRecipe",
+      "tags": ["cash-flow", "forecasting", "weekly"]
+    },
+    {
+      "id": "recurring-analysis",
+      "name": "Recurring Spend Detector",
+      "version": "1.0.0",
+      "author": "SheetLink",
+      "type": "official",
+      "description": "Identify subscriptions and recurring charges with trends",
+      "longDescription": "Automatically detects recurring transactions like subscriptions, memberships, and regular bills. Shows frequency, average amount, total spent, and annualized cost. Includes monthly trending to see how recurring spend changes over time.",
+      "requirements": {
+        "sheets": ["Transactions"],
+        "columns": ["date", "amount", "name", "merchant_name", "category_primary"]
+      },
+      "outputs": ["Recurring Analysis"],
+      "files": ["recipe.gs"],
+      "dependencies": [],
+      "menuName": "🔄 Recurring Spend Detector",
+      "entryFunction": "runRecurringRecipe",
+      "tags": ["subscriptions", "recurring", "analysis"]
+    },
+    {
+      "id": "financial-statements",
+      "name": "Financial Statements Suite",
+      "version": "2.0.0",
+      "author": "SheetLink",
+      "type": "official",
+      "description": "Complete financial reporting: Chart of Accounts, General Ledger, P&L, Balance Sheet, Cash Flow Statement",
+      "longDescription": "Professional-grade financial reporting suite. Includes: Chart of Accounts with customizable GL codes, General Ledger with debit/credit entries and running balances, and consolidated Financial Statements (Income Statement, Balance Sheet, Cash Flow Statement) with monthly trending. Perfect for small businesses, freelancers, and power users who need GAAP-style reporting.",
+      "requirements": {
+        "sheets": ["Transactions"],
+        "columns": ["date", "amount", "name", "category_primary", "category_detailed", "account_name", "pending"]
+      },
+      "outputs": ["Chart of Accounts", "General Ledger", "Financial Statements"],
+      "files": ["recipe.gs"],
+      "dependencies": [],
+      "menuName": "📈 Financial Statements",
+      "entryFunction": "runFinancialsRecipe",
+      "tags": ["financial-statements", "accounting", "business", "gaap"]
+    }
+  ]
+}
