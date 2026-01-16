@@ -31,21 +31,21 @@ Track spending by category broken down by individual accounts.
 
 ---
 
-### Cash Flow Forecast
-Weekly cash flow projection with income, expenses, and running balance.
-
-**Outputs:** `CashFlow Weekly` sheet
-**Use Case:** Cash runway planning, liquidity management
-[View Code](recipes/official/cash-flow/) | [Documentation](recipes/official/cash-flow/README.md)
-
----
-
 ### Recurring Spend Detector
 Identify subscriptions and recurring charges with trends and annualized costs.
 
 **Outputs:** `Recurring Analysis` sheet
 **Use Case:** Subscription auditing, finding hidden recurring charges
 [View Code](recipes/official/recurring-analysis/) | [Documentation](recipes/official/recurring-analysis/README.md)
+
+---
+
+### Cash Flow Forecast
+Weekly cash flow projection with income, expenses, and running balance.
+
+**Outputs:** `CashFlow Weekly` sheet
+**Use Case:** Cash runway planning, liquidity management
+[View Code](recipes/official/cash-flow/) | [Documentation](recipes/official/cash-flow/README.md)
 
 ---
 

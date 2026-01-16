@@ -41,25 +41,6 @@
       "tags": ["budgeting", "spending", "accounts", "categories"]
     },
     {
-      "id": "cash-flow",
-      "name": "Cash Flow Forecast",
-      "version": "2.0.0",
-      "author": "SheetLink",
-      "type": "official",
-      "description": "Weekly cash flow projection with income, expenses, and running balance",
-      "longDescription": "See your cash flow week by week with income, expenses, net change, and projected ending balance. Configurable starting balance. Perfect for understanding your financial runway and cash position over time.",
-      "requirements": {
-        "sheets": ["Transactions"],
-        "columns": ["date", "amount", "pending"]
-      },
-      "outputs": ["CashFlow Weekly"],
-      "files": ["recipe.gs"],
-      "dependencies": [],
-      "menuName": "📊 Cash Flow Forecast",
-      "entryFunction": "runCashFlowRecipe",
-      "tags": ["cash-flow", "forecasting", "weekly"]
-    },
-    {
       "id": "recurring-analysis",
       "name": "Recurring Spend Detector",
       "version": "1.0.0",
@@ -77,6 +58,25 @@
       "menuName": "🔄 Recurring Spend Detector",
       "entryFunction": "runRecurringRecipe",
       "tags": ["subscriptions", "recurring", "analysis"]
+    },
+    {
+      "id": "cash-flow",
+      "name": "Cash Flow Forecast",
+      "version": "2.0.0",
+      "author": "SheetLink",
+      "type": "official",
+      "description": "Weekly cash flow projection with income, expenses, and running balance",
+      "longDescription": "See your cash flow week by week with income, expenses, net change, and projected ending balance. Configurable starting balance. Perfect for understanding your financial runway and cash position over time.",
+      "requirements": {
+        "sheets": ["Transactions"],
+        "columns": ["date", "amount", "pending"]
+      },
+      "outputs": ["CashFlow Weekly"],
+      "files": ["recipe.gs"],
+      "dependencies": [],
+      "menuName": "📊 Cash Flow Forecast",
+      "entryFunction": "runCashFlowRecipe",
+      "tags": ["cash-flow", "forecasting", "weekly"]
     },
     {
       "id": "financial-statements",
