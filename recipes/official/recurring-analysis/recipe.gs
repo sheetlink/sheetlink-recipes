@@ -946,10 +946,4 @@ function calculateConfidence(count, amountVariance, avgDays) {
 // ========================================
 // MENU INTEGRATION
 // ========================================
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Recurring Analysis')
-    .addItem('Run Recipe', 'runRecurringRecipe')
-    .addToUi();
-}
+// Menu is now managed by the unified SheetLink Recipes menu system

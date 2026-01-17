@@ -892,10 +892,4 @@ function columnToLetter(column) {
 // ========================================
 // MENU INTEGRATION
 // ========================================
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Budget Tracker')
-    .addItem('Run Recipe', 'runBudgetRecipe')
-    .addToUi();
-}
+// Menu is now managed by the unified SheetLink Recipes menu system

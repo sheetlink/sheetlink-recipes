@@ -1587,10 +1587,4 @@ function createNamedRange(sheet, name, a1Notation) {
 // ========================================
 // MENU INTEGRATION
 // ========================================
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Financial Statements')
-    .addItem('Run Recipe', 'runFinancialsRecipe')
-    .addToUi();
-}
+// Menu is now managed by the unified SheetLink Recipes menu system

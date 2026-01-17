@@ -958,10 +958,4 @@ function columnIndexToLetter(index) {
 // ========================================
 // MENU INTEGRATION
 // ========================================
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Cash Flow')
-    .addItem('Run Recipe', 'runCashFlowRecipe')
-    .addToUi();
-}
+// Menu is now managed by the unified SheetLink Recipes menu system

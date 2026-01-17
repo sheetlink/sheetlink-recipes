@@ -572,10 +572,4 @@ function setupBudgetByAccount(sheet, transactionsSheet, headerMap, ss) {
 // ========================================
 // MENU INTEGRATION
 // ========================================
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Budget By Account')
-    .addItem('Run Recipe', 'runBudgetByAccountRecipe')
-    .addToUi();
-}
+// Menu is now managed by the unified SheetLink Recipes menu system
