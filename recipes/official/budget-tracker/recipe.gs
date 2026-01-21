@@ -60,11 +60,21 @@ function validateTransactionsSheet(ss) {
     };
   }
 
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
+  // Check for actual data by reading first data cell (A2)
+  // This is more reliable than getLastRow() which can be inconsistent
+  try {
+    const firstDataCell = sheet.getRange(2, 1).getValue();
+
+    if (!firstDataCell || firstDataCell === '') {
+      return {
+        valid: false,
+        error: "No transaction data found. Please sync your transactions first."
+      };
+    }
+  } catch (error) {
     return {
       valid: false,
-      error: "No transaction data found. Please sync your transactions first."
+      error: "Could not read transaction data. Please sync your transactions first."
     };
   }
 
