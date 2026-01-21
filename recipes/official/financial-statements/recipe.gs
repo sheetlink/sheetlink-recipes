@@ -297,7 +297,10 @@ function setupGeneralLedgerV2(sheet, transactionsSheet, headerMap, coaSheet, ss)
       sheet.getRange(currentRow, 1).setValue(accountName).setBackground("#fffbea");
       sheet.getRange(currentRow, 2).setValue(accountType).setBackground("#fffbea");
       sheet.getRange(currentRow, 3).setValue(startingBalance).setNumberFormat("$#,##0.00").setBackground("#fffbea");
-      sheet.getRange(currentRow, 4).setValue(new Date()).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
+      // Set As of Date as date-only (strip time portion)
+      const today = new Date();
+      const dateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      sheet.getRange(currentRow, 4).setValue(dateOnly).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
       currentRow++;
     });
   }
@@ -347,8 +350,8 @@ function setupGeneralLedgerV2(sheet, transactionsSheet, headerMap, coaSheet, ss)
       const ledgerRow = dataStartRow + i;
 
       const row = [
-        // Column A: Date
-        `=Transactions!${dateColLetter}${txnRow}`,
+        // Column A: Date (convert text to date if needed)
+        `=DATEVALUE(Transactions!${dateColLetter}${txnRow})`,
 
         // Column B: Transaction ID
         `=Transactions!${txnIdColLetter}${txnRow}`,
@@ -482,7 +485,8 @@ function setupFinancialStatementsV2(sheet, ledgerSheet, transactionsSheet, heade
   const monthDates = [];
   months.forEach(month => {
     const parts = month.split('-');
-    const monthDate = new Date(parts[0], parts[1] - 1, 1); // First of month
+    // Create date-only Date object (year, month-1, day, 0, 0, 0, 0) to avoid timezone issues
+    const monthDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1, 0, 0, 0, 0);
     plHeaders.push(monthDate);
     monthDates.push(monthDate);
   });
