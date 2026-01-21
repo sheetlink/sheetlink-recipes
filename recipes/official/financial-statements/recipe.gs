@@ -55,6 +55,10 @@ function runFinancialsRecipe(ss) {
       return { success: false, error: errorMsg };
     }
 
+    // Format date and pending columns in Transactions sheet
+    formatTransactionDateColumns(transactionsSheet, headerMap);
+    formatTransactionPendingColumn(transactionsSheet, headerMap);
+
     // Create or get Chart of Accounts
     const coaSheet = getOrCreateSheet(ss, "Chart of Accounts");
     setupChartOfAccounts(coaSheet, transactionsSheet, headerMap, ss);
