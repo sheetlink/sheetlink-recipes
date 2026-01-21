@@ -297,8 +297,10 @@ function setupGeneralLedgerV2(sheet, transactionsSheet, headerMap, coaSheet, ss)
       sheet.getRange(currentRow, 1).setValue(accountName).setBackground("#fffbea");
       sheet.getRange(currentRow, 2).setValue(accountType).setBackground("#fffbea");
       sheet.getRange(currentRow, 3).setValue(startingBalance).setNumberFormat("$#,##0.00").setBackground("#fffbea");
-      // Set As of Date using formula to avoid timezone issues
-      sheet.getRange(currentRow, 4).setFormula("=TODAY()").setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
+      // Set As of Date to first of current month as hardcoded date
+      const now = new Date();
+      const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      sheet.getRange(currentRow, 4).setValue(firstOfMonth).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
       currentRow++;
     });
   }
