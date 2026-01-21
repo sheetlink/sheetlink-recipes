@@ -682,14 +682,24 @@ function setupFinancialStatementsV2(sheet, ledgerSheet, transactionsSheet, heade
 
   // Balance Sheet Headers (Account, Type, then month dates - align with P&L)
   const bsHeaders = ["Account", "Type"];
-  months.forEach(month => {
+
+  // Set static headers first
+  sheet.getRange(currentRow, 1, 1, 2).setValues([["Account", "Type"]]);
+  sheet.getRange(currentRow, 1, 1, 2).setFontWeight("bold").setBackground("#f3f3f3");
+
+  // Set month headers using DATE formula to avoid timezone issues
+  months.forEach((month, index) => {
     const parts = month.split('-');
-    const monthDate = new Date(parts[0], parts[1] - 1, 1); // First of month
-    bsHeaders.push(monthDate);
+    const year = parseInt(parts[0]);
+    const monthNum = parseInt(parts[1]);
+    const col = 3 + index; // Start at column 3 (C)
+
+    // Use DATE formula for first of month
+    sheet.getRange(currentRow, col).setFormula(`=DATE(${year},${monthNum},1)`);
+    sheet.getRange(currentRow, col).setFontWeight("bold").setBackground("#f3f3f3");
   });
-  sheet.getRange(currentRow, 1, 1, bsHeaders.length).setValues([bsHeaders]);
-  sheet.getRange(currentRow, 1, 1, bsHeaders.length).setFontWeight("bold").setBackground("#f3f3f3");
-  // Format date columns as MMM-YY (starting at column 3)
+
+  // Format date columns as MMM-YY
   sheet.getRange(currentRow, 3, 1, months.length).setNumberFormat("mmm-yy");
   const bsHeaderRow = currentRow;
   currentRow++;
@@ -897,14 +907,24 @@ function setupFinancialStatementsV2(sheet, ledgerSheet, transactionsSheet, heade
 
   // Cash Flow Headers (Account, Type, then month dates - align with P&L)
   const cfHeaders = ["Account", "Type"];
-  months.forEach(month => {
+
+  // Set static headers first
+  sheet.getRange(currentRow, 1, 1, 2).setValues([["Account", "Type"]]);
+  sheet.getRange(currentRow, 1, 1, 2).setFontWeight("bold").setBackground("#f3f3f3");
+
+  // Set month headers using DATE formula to avoid timezone issues
+  months.forEach((month, index) => {
     const parts = month.split('-');
-    const monthDate = new Date(parts[0], parts[1] - 1, 1); // First of month
-    cfHeaders.push(monthDate);
+    const year = parseInt(parts[0]);
+    const monthNum = parseInt(parts[1]);
+    const col = 3 + index; // Start at column 3 (C)
+
+    // Use DATE formula for first of month
+    sheet.getRange(currentRow, col).setFormula(`=DATE(${year},${monthNum},1)`);
+    sheet.getRange(currentRow, col).setFontWeight("bold").setBackground("#f3f3f3");
   });
-  sheet.getRange(currentRow, 1, 1, cfHeaders.length).setValues([cfHeaders]);
-  sheet.getRange(currentRow, 1, 1, cfHeaders.length).setFontWeight("bold").setBackground("#f3f3f3");
-  // Format date columns as MMM-YY (starting at column 3)
+
+  // Format date columns as MMM-YY
   sheet.getRange(currentRow, 3, 1, months.length).setNumberFormat("mmm-yy");
   const cfHeaderRow = currentRow;
   currentRow++;
