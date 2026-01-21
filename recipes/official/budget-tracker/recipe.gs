@@ -64,8 +64,10 @@ function validateTransactionsSheet(ss) {
   // This is more reliable than getLastRow() which can be inconsistent
   try {
     const firstDataCell = sheet.getRange(2, 1).getValue();
+    // Convert to string and trim to handle whitespace and non-string types
+    const cellValue = String(firstDataCell || '').trim();
 
-    if (!firstDataCell || firstDataCell === '') {
+    if (!cellValue) {
       return {
         valid: false,
         error: "No transaction data found. Please sync your transactions first."
