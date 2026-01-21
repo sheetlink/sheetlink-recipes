@@ -150,7 +150,11 @@ function createCashFlowTable(sheet, transactionsSheet, headerMap, weeks, validTx
   sheet.getRange(startRow, 2).setValue("Ending Balance:").setFontWeight("bold");
   sheet.getRange(startRow, 3).setValue(0).setNumberFormat("$#,##0.00").setBackground("#fffbea");
   sheet.getRange(startRow, 4).setValue("As of Date:").setFontWeight("bold");
-  sheet.getRange(startRow, 5).setValue(new Date()).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
+
+  // Set today's date as hardcoded string to avoid timestamp
+  const now = new Date();
+  const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  sheet.getRange(startRow, 5).setValue(todayDate).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
 
   // Create named ranges for config
   createNamedRange(sheet, "CashFlow_StartingBalance", `C${startRow}`);
@@ -166,12 +170,34 @@ function createCashFlowTable(sheet, transactionsSheet, headerMap, weeks, validTx
   sheet.getRange(headerRow1Index, 1, 1, headerRow1.length).setValues([headerRow1]);
 
   // Header row 2 (Week ending dates - Sundays)
+  // Find max transaction date to determine proper ending Sunday
+  let maxTransDate = null;
+  validTxns.forEach(txn => {
+    const date = parseDate(txn.date);
+    if (date && (!maxTransDate || date > maxTransDate)) {
+      maxTransDate = date;
+    }
+  });
+
+  // Calculate the next Sunday after max transaction date (or keep if already Sunday)
+  let finalSunday = maxTransDate ? new Date(maxTransDate) : new Date();
+  const dayOfWeek = finalSunday.getDay();
+  if (dayOfWeek !== 0) { // If not Sunday
+    finalSunday.setDate(finalSunday.getDate() + (7 - dayOfWeek)); // Go to next Sunday
+  }
+
   const headerRow2 = ["Week Ending", ""];
-  weeks.forEach(week => {
+  weeks.forEach((week, index) => {
     const weekStart = getWeekStartDate(week);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6); // Add 6 days to get Sunday
-    headerRow2.push(weekEnd);
+
+    // For the last week, use finalSunday instead
+    const dateToUse = (index === weeks.length - 1) ? finalSunday : weekEnd;
+
+    // Convert to date string to avoid timestamp
+    const dateString = `${dateToUse.getFullYear()}-${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')}`;
+    headerRow2.push(dateString);
   });
 
   const headerRow2Index = startRow + 2;
