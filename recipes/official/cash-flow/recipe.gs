@@ -265,7 +265,7 @@ function createCashFlowTable(sheet, transactionsSheet, headerMap, weeks, validTx
         categoryRow.push(formula);
       });
       sheet.getRange(currentRow, 1, 1, categoryRow.length).setValues([categoryRow]);
-      sheet.getRange(currentRow, 3, 1, numWeeks).setNumberFormat("$#,##0.00_);($#,##0.00);\"-  \"").setFontSize(8);
+      sheet.getRange(currentRow, 3, 1, numWeeks).setNumberFormat("$#,##0.00_);($#,##0.00);\"-  \"");
       currentRow++;
     });
   });
@@ -324,7 +324,7 @@ function createCashFlowTable(sheet, transactionsSheet, headerMap, weeks, validTx
         categoryRow.push(formula);
       });
       sheet.getRange(currentRow, 1, 1, categoryRow.length).setValues([categoryRow]);
-      sheet.getRange(currentRow, 3, 1, numWeeks).setNumberFormat("$#,##0.00_);($#,##0.00);\"-  \"").setFontSize(8);
+      sheet.getRange(currentRow, 3, 1, numWeeks).setNumberFormat("$#,##0.00_);($#,##0.00);\"-  \"");
       currentRow++;
     });
   });
