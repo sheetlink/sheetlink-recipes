@@ -297,10 +297,8 @@ function setupGeneralLedgerV2(sheet, transactionsSheet, headerMap, coaSheet, ss)
       sheet.getRange(currentRow, 1).setValue(accountName).setBackground("#fffbea");
       sheet.getRange(currentRow, 2).setValue(accountType).setBackground("#fffbea");
       sheet.getRange(currentRow, 3).setValue(startingBalance).setNumberFormat("$#,##0.00").setBackground("#fffbea");
-      // Set As of Date as date-only (strip time portion)
-      const today = new Date();
-      const dateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      sheet.getRange(currentRow, 4).setValue(dateOnly).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
+      // Set As of Date using formula to avoid timezone issues
+      sheet.getRange(currentRow, 4).setFormula("=TODAY()").setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
       currentRow++;
     });
   }
@@ -483,16 +481,27 @@ function setupFinancialStatementsV2(sheet, ledgerSheet, transactionsSheet, heade
   // P&L Headers
   const plHeaders = ["Account", "Type"];
   const monthDates = [];
-  months.forEach(month => {
+
+  // Set static headers first
+  sheet.getRange(currentRow, 1, 1, 2).setValues([["Account", "Type"]]);
+  sheet.getRange(currentRow, 1, 1, 2).setFontWeight("bold").setBackground("#f3f3f3");
+
+  // Set month headers using DATE formula to avoid timezone issues
+  months.forEach((month, index) => {
     const parts = month.split('-');
-    // Create date-only Date object (year, month-1, day, 0, 0, 0, 0) to avoid timezone issues
-    const monthDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1, 0, 0, 0, 0);
-    plHeaders.push(monthDate);
-    monthDates.push(monthDate);
+    const year = parseInt(parts[0]);
+    const monthNum = parseInt(parts[1]);
+    const col = 3 + index; // Start at column 3 (C)
+
+    // Use DATE formula for first of month
+    sheet.getRange(currentRow, col).setFormula(`=DATE(${year},${monthNum},1)`);
+    sheet.getRange(currentRow, col).setFontWeight("bold").setBackground("#f3f3f3");
+
+    // Store for later use in formulas
+    monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-01`);
   });
-  sheet.getRange(currentRow, 1, 1, plHeaders.length).setValues([plHeaders]);
-  sheet.getRange(currentRow, 1, 1, plHeaders.length).setFontWeight("bold").setBackground("#f3f3f3");
-  // Format date columns as MMM-YY (now starting at column 3)
+
+  // Format date columns as MMM-YY
   sheet.getRange(currentRow, 3, 1, months.length).setNumberFormat("mmm-yy");
   const plHeaderRow = currentRow;
   currentRow++;
