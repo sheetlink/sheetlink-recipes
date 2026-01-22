@@ -191,9 +191,9 @@ function createBudgetTable(sheet, transactionsSheet, headerMap, transactions, ac
     } else {
       headerRow1.push("");
     }
-    // Convert "YYYY-MM" to actual date (first day of month)
+    // Convert "YYYY-MM" to date string (first day of month)
     const [year, month] = sortedMonths[i].split('-');
-    headerRow2.push(new Date(parseInt(year), parseInt(month) - 1, 1));
+    headerRow2.push(`${year}-${month}-01`);
   }
 
   // Spacer column
@@ -207,9 +207,9 @@ function createBudgetTable(sheet, transactionsSheet, headerMap, transactions, ac
     } else {
       headerRow1.push("");
     }
-    // Convert "YYYY-MM" to actual date (first day of month)
+    // Convert "YYYY-MM" to date string (first day of month)
     const [year, month] = sortedMonths[i].split('-');
-    headerRow2.push(new Date(parseInt(year), parseInt(month) - 1, 1));
+    headerRow2.push(`${year}-${month}-01`);
   }
 
   // Spacer column
@@ -223,9 +223,9 @@ function createBudgetTable(sheet, transactionsSheet, headerMap, transactions, ac
     } else {
       headerRow1.push("");
     }
-    // Convert "YYYY-MM" to actual date (first day of month)
+    // Convert "YYYY-MM" to date string (first day of month)
     const [year, month] = sortedMonths[i].split('-');
-    headerRow2.push(new Date(parseInt(year), parseInt(month) - 1, 1));
+    headerRow2.push(`${year}-${month}-01`);
   }
 
   // Write table title (don't merge due to frozen columns issue)
