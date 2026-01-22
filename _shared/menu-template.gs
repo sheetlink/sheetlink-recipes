@@ -10,7 +10,7 @@
  *   - ▸ Recipe 2
  *   - ...
  *   - ──────────
- *   - ★ Format Dates
+ *   - ★ Format Transaction Dates
  *   - ⓘ Help
  *     - View Documentation
  *     - About SheetLink Recipes
@@ -22,14 +22,14 @@ function onOpen() {
     // Recipe menu items are dynamically injected here by the installer
     // Example: .addItem('▸ Financial Statements', 'run_financial_statements')
     .addSeparator()
-    .addItem('★ Format Dates', 'menuFormatDates')
+    .addItem('★ Format Transaction Dates', 'menuFormatDates')
     .addSubMenu(ui.createMenu('ⓘ Help')
       .addItem('View Documentation', 'menuShowDocs')
       .addItem('About SheetLink Recipes', 'menuShowAbout'))
     .addToUi();
 }
 
-// Format Dates utility handler
+// Format Transaction Dates utility handler
 function menuFormatDates() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
