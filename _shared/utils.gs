@@ -380,7 +380,7 @@ function formatTransactionDateColumns(transactionsSheet, headerMap) {
     });
 
     dateRange.setValues(dateValues);
-    dateRange.setNumberFormat('M/d/yyyy');
+    dateRange.setNumberFormat('yyyy-mm-dd');
     Logger.log(`[formatTransactionDateColumns] Formatted 'date' column (${dateCol})`);
   }
 
@@ -403,7 +403,7 @@ function formatTransactionDateColumns(transactionsSheet, headerMap) {
     });
 
     authDateRange.setValues(dateValues);
-    authDateRange.setNumberFormat('M/d/yyyy');
+    authDateRange.setNumberFormat('yyyy-mm-dd');
     Logger.log(`[formatTransactionDateColumns] Formatted 'authorized_date' column (${authorizedDateCol})`);
   }
 
