@@ -2,8 +2,10 @@
   "id": "financial-statements",
   "name": "Financial Statements",
   "version": "2.1.0",
-  "author": "SheetLink",
-  "type": "official",
+  "author": "Rudy",
+  "type": "community",
+  "source": "community",
+  "githubUser": "rudymdc",
   "description": "Complete financial reporting suite with P&L, Balance Sheet, and Cash Flow",
   "longDescription": "Generates comprehensive financial statements including Chart of Accounts, General Ledger, Profit & Loss, Balance Sheet, and Cash Flow Statement with monthly trending.",
   "requirements": {
