@@ -374,7 +374,19 @@ function formatTransactionDateColumns(transactionsSheet, headerMap) {
       // If already a date, keep it
       if (val instanceof Date) return [val];
 
-      // Parse text date string (format: "YYYY-MM-DD" or "MM/DD/YYYY")
+      // Parse text date string (format: "YYYY-MM-DD")
+      // Use noon time to avoid timezone issues
+      if (typeof val === 'string') {
+        const match = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+          const year = parseInt(match[1]);
+          const month = parseInt(match[2]) - 1; // JS months are 0-indexed
+          const day = parseInt(match[3]);
+          return [new Date(year, month, day, 12, 0, 0)];
+        }
+      }
+
+      // Fallback for other date formats
       const dateObj = new Date(val);
       return [isNaN(dateObj.getTime()) ? val : dateObj];
     });
@@ -397,7 +409,19 @@ function formatTransactionDateColumns(transactionsSheet, headerMap) {
       // If already a date, keep it
       if (val instanceof Date) return [val];
 
-      // Parse text date string
+      // Parse text date string (format: "YYYY-MM-DD")
+      // Use noon time to avoid timezone issues
+      if (typeof val === 'string') {
+        const match = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+          const year = parseInt(match[1]);
+          const month = parseInt(match[2]) - 1; // JS months are 0-indexed
+          const day = parseInt(match[3]);
+          return [new Date(year, month, day, 12, 0, 0)];
+        }
+      }
+
+      // Fallback for other date formats
       const dateObj = new Date(val);
       return [isNaN(dateObj.getTime()) ? val : dateObj];
     });
