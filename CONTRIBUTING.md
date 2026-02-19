@@ -1,278 +1,272 @@
 # Contributing to SheetLink Recipes
 
-Thank you for your interest in contributing to SheetLink Recipes! This guide will help you create and submit recipes that the community can use.
+Thank you for your interest in contributing! This guide covers everything you need to build and submit a recipe.
 
-## Recipe Guidelines
+## How Recipes Work
 
-### Privacy & Security First
+When a user installs a recipe from the SheetLink extension, two Apps Script files are written to their spreadsheet project:
 
-**All recipes must:**
-- Run entirely within Google Apps Script (no external API calls)
-- Never send transaction data to external servers
-- Be fully auditable (clear, readable code)
-- Include no tracking, analytics, or telemetry
+1. **`utils.gs`** — Shared utilities from `_shared/utils.gs` in this repo. Installed once, shared by all recipes.
+2. **`recipe.gs`** — Your recipe code, installed as a separate file.
 
-**Prohibited:**
-- `UrlFetchApp` calls to external services
-- Obfuscated or minified code
-- Third-party libraries (unless well-known and security-audited)
-- Data collection or transmission
+Because `utils.gs` is always present, your recipe code can call any utility function directly without defining it. **Do not redefine or copy utility functions** — the installer strips any inlined copies to avoid duplication errors.
 
-### Code Quality
+---
 
-- **Standalone:** Each recipe must be a single `recipe.gs` file with all utilities inlined
-- **Documented:** Clear comments explaining logic, especially complex calculations
-- **Error Handling:** Graceful handling of missing data, invalid formats, etc.
-- **User Feedback:** Use `showToast()` or `showError()` to communicate with users
-
-## Recipe Structure
-
-Each recipe lives in its own directory:
+## File Structure
 
 ```
 recipes/community/your-recipe-name/
-├── recipe.gs          # Complete Apps Script code
-├── metadata.json      # Recipe metadata
-└── README.md          # User-facing documentation
+├── recipe.gs        # Your Apps Script code
+├── metadata.json    # Recipe metadata (required for manifest)
+└── README.md        # User-facing docs (optional but encouraged)
 ```
 
-### recipe.gs
+---
 
-Must include:
+## Writing `recipe.gs`
+
+### Entry function
+
+Your recipe must have exactly one entry function named `run<Something>Recipe`:
 
 ```javascript
-/**
- * Recipe Name
- * Version X.X.X
- * Author: Your Name
- *
- * Description of what the recipe does.
- */
-
-/**
- * Entry point function
- * This function will be called from the spreadsheet menu
- */
-function runYourRecipe() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // Your recipe logic here
-
-  showToast("✓ Recipe complete!", "SheetLink Recipes", 3);
+function runMyRecipe(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  // ...
 }
-
-/**
- * Creates custom menu on spreadsheet open
- */
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('SheetLink Recipes')
-    .addItem('🎯 Your Recipe Name', 'runYourRecipe')
-    .addToUi();
-}
-
-// === Utilities (inline all helper functions here) ===
-
-function showToast(message, title, timeout) {
-  SpreadsheetApp.getActiveSpreadsheet().toast(message, title, timeout);
-}
-
-function showError(message) {
-  SpreadsheetApp.getUi().alert("Error", message, SpreadsheetApp.getUi().ButtonSet.OK);
-}
-
-// Add other utility functions as needed
 ```
 
-### metadata.json
+The installer auto-detects this function and generates a menu entry point that calls it. You do not need to define `onOpen()` or manage the menu yourself.
+
+### Using `utils.gs` functions
+
+All functions in `_shared/utils.gs` are globally available. Call them directly:
+
+```javascript
+function runMyRecipe(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Validate transactions exist before doing any work
+  if (!checkTransactionsOrPrompt(ss)) return;
+
+  const txSheet = getTransactionsSheet(ss);
+  const headerMap = getHeaderMap(txSheet);
+  const transactions = getTransactionData(txSheet);
+
+  // ... your logic ...
+
+  const outputSheet = getOrCreateSheet(ss, "My Output");
+  setHeaders(outputSheet, ["Month", "Amount", "Count"]);
+  formatSheet(outputSheet);
+
+  showToast("Done!", "My Recipe", 3);
+}
+```
+
+### Full `utils.gs` API reference
+
+**Transaction access**
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `getTransactionsSheet(ss)` | `Sheet\|null` | Gets the "Transactions" sheet |
+| `validateTransactionsSheet(ss)` | `{valid, error}` | Checks sheet exists and has data |
+| `checkTransactionsOrPrompt(ss)` | `boolean` | Validates or shows a "no data" dialog — returns `false` if user cancels |
+| `getTransactionData(txSheet)` | `Object[]` | All rows as objects keyed by header name |
+
+**Header/column utilities**
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `getHeaderMap(sheet)` | `Object` | Maps column names → 1-based column index |
+| `getColumnIndex(headerMap, name)` | `number\|null` | Gets column index from header map |
+
+**Sheet management**
+| Function | Description |
+|----------|-------------|
+| `getOrCreateSheet(ss, name)` | Gets sheet by name, creates it (at end) if missing |
+| `clearSheetData(sheet, preserveHeaders)` | Clears data; set `preserveHeaders=true` to keep row 1 |
+| `setHeaders(sheet, headersArray)` | Writes bold headers to row 1 with gray background |
+| `formatSheet(sheet)` | Freezes row 1 and auto-resizes all columns |
+| `createNamedRange(sheet, name, a1)` | Creates/replaces a named range |
+
+**Date utilities**
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `parseDate(value)` | `Date\|null` | Parses string or Date; returns null if invalid |
+| `getCurrentMonth()` | `string` | `"YYYY-MM"` for today |
+| `getMostRecentMonth(transactions)` | `string` | `"YYYY-MM"` from the most recent transaction date |
+| `isInMonth(date, targetMonth)` | `boolean` | Whether a date falls in `"YYYY-MM"` |
+| `getISOWeek(date)` | `string` | `"YYYY-WW"` ISO week number |
+
+**Data formatting**
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `formatCurrency(value)` | `string` | `"$12.34"` (absolute value, 2 decimal places) |
+
+**Data type fixups**
+
+Dates and the `pending` column are written as text strings by the extension (RAW mode). If your recipe uses these for formulas or comparisons, call these before processing:
+
+| Function | Description |
+|----------|-------------|
+| `formatTransactionDateColumns(txSheet, headerMap)` | Strips leading apostrophes from `date` and `authorized_date` columns |
+| `formatTransactionPendingColumn(txSheet, headerMap)` | Converts `"TRUE"`/`"FALSE"` strings to actual booleans in `pending` column |
+
+**Logging & UI**
+| Function | Description |
+|----------|-------------|
+| `showToast(message, title, timeoutSeconds)` | Shows a toast notification in the spreadsheet |
+| `showError(message)` | Shows a blocking error dialog |
+| `logRecipe(recipeName, message)` | Logs to Apps Script console with `[recipeName]` prefix |
+
+### Transaction data shape
+
+The `Transactions` sheet has these columns (all values are strings unless `formatTransactionDateColumns` / `formatTransactionPendingColumn` are called):
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `transaction_id` | string | Plaid transaction ID |
+| `account_id` | string | Plaid account ID |
+| `account_name` | string | Human-readable account name |
+| `date` | string | `"YYYY-MM-DD"` — text, call `formatTransactionDateColumns` if using in formulas |
+| `authorized_date` | string | `"YYYY-MM-DD"` or empty |
+| `name` | string | Raw transaction name |
+| `merchant_name` | string | Cleaned merchant name (may be empty) |
+| `amount` | number | Positive = expense, negative = income (Plaid convention) |
+| `category_primary` | string | e.g., `"Food and Drink"` |
+| `category_detailed` | string | e.g., `"Food and Drink > Restaurants"` |
+| `payment_channel` | string | `"online"`, `"in store"`, `"other"` |
+| `pending` | string | `"TRUE"` or `"FALSE"` — call `formatTransactionPendingColumn` to get booleans |
+| `iso_currency_code` | string | e.g., `"USD"` |
+
+> **Amount sign convention:** Plaid uses positive amounts for debits (money out) and negative for credits (money in). Most recipes treat positive as expense and negative as income.
+
+### What NOT to do
+
+- **Do not define** `getOrCreateSheet`, `getTransactionsSheet`, `validateTransactionsSheet`, `getHeaderMap`, `getColumnIndex`, `clearSheetData`, `setHeaders`, `formatSheet`, `getTransactionData`, `parseDate`, `showToast`, `showError`, or `logRecipe` — these exist in `utils.gs` and the installer will conflict
+- **Do not define** `TRANSACTIONS_SHEET_NAME` — use `getTransactionsSheet(ss)` instead
+- **Do not call** `UrlFetchApp` — recipes must be fully offline
+- **Do not define** `onOpen()` — the extension manages the menu
+
+---
+
+## Writing `metadata.json`
+
+This file must be added to `manifest.json` at the repo root for the recipe to appear in the marketplace.
 
 ```json
 {
   "id": "your-recipe-name",
   "name": "Your Recipe Display Name",
   "version": "1.0.0",
-  "author": "Your Name",
+  "author": "Your GitHub username",
   "type": "community",
-  "description": "Short one-line description (max 80 chars)",
-  "longDescription": "Longer description explaining what the recipe does, who it's for, and what outputs it creates. 2-3 sentences.",
+  "source": "community",
+  "githubUser": "your-github-username",
+  "contributed": "YYYY-MM-DD",
+  "description": "One-line description, max 80 chars",
+  "longDescription": "2-3 sentences explaining what the recipe does, who it's for, and what output it creates.",
   "requirements": {
     "sheets": ["Transactions"],
     "columns": ["date", "amount", "category_primary"]
   },
-  "outputs": ["Your Output Sheet Name"],
+  "outputs": ["My Output Sheet"],
   "files": ["recipe.gs"],
   "dependencies": [],
   "menuName": "🎯 Your Recipe Name",
-  "entryFunction": "runYourRecipe",
-  "tags": ["tag1", "tag2", "tag3"]
+  "entryFunction": "runMyRecipe",
+  "tags": ["budgeting", "analysis"]
 }
 ```
 
-**Field descriptions:**
-- `id`: Lowercase, hyphenated (e.g., `cash-flow`, `tax-report`)
-- `type`: Use `"community"` for community recipes
-- `requirements.columns`: List all transaction columns your recipe needs
-- `outputs`: Names of sheets your recipe creates/updates
-- `menuName`: Include an emoji for visual appeal
-- `tags`: Help users find your recipe (e.g., `budgeting`, `taxes`, `business`)
+**Field notes:**
+- `id` — lowercase, hyphenated, unique across all recipes
+- `entryFunction` — must exactly match your `run<X>Recipe` function name
+- `menuName` — include an emoji; shown in the SheetLink Recipes menu
+- `requirements.columns` — list every column your recipe reads from `Transactions`
+- `outputs` — list every sheet name your recipe creates or overwrites
+- `tags` — used for filtering; see existing recipes for common tags
 
-### README.md
+---
 
-```markdown
-# Recipe Name
+## Testing Locally
 
-Brief description of what the recipe does.
+Before submitting, test your recipe manually:
 
-## What It Does
-
-Explain the recipe's purpose and value proposition.
-
-## Requirements
-
-- **Transaction Columns:** `date`, `amount`, `category_primary`
-- **Minimum Data:** 30 days of transactions recommended
-
-## Outputs
-
-### Sheet Name
-
-Description of the output sheet and its columns.
-
-| Column | Description |
-|--------|-------------|
-| Column A | What this column shows |
-| Column B | What this column shows |
-
-## How to Use
-
-1. Install the recipe via SheetLink extension
-2. Ensure you have synced transactions
-3. Go to **SheetLink Recipes** → **🎯 Your Recipe Name**
-4. View results in the `Your Output Sheet` tab
-
-## Configuration
-
-Explain any user-configurable settings (if applicable).
-
-## Example Use Cases
-
-- Use case 1
-- Use case 2
-- Use case 3
-
-## Known Limitations
-
-List any limitations or edge cases users should be aware of.
-
-## Support
-
-Questions? Open an issue at [github.com/sheetlink/sheetlink-recipes/issues](https://github.com/sheetlink/sheetlink-recipes/issues)
-```
-
-## Submission Process
-
-### 1. Fork the Repository
-
-```bash
-git clone https://github.com/sheetlink/sheetlink-recipes.git
-cd sheetlink-recipes
-```
-
-### 2. Create Your Recipe
-
-```bash
-mkdir -p recipes/community/your-recipe-name
-cd recipes/community/your-recipe-name
-touch recipe.gs metadata.json README.md
-```
-
-### 3. Test Your Recipe
-
-**Manual Testing:**
-1. Open a SheetLink-powered Google Sheet with transaction data
-2. Go to **Extensions** → **Apps Script**
-3. Paste your `recipe.gs` code
+1. Open a Google Sheet that has a `Transactions` sheet with real or dummy data (use SheetLink's "Populate Dummy Data" from the Settings menu)
+2. Go to **Extensions → Apps Script**
+3. Create a new file, paste the contents of `_shared/utils.gs` followed by your `recipe.gs`
 4. Save and run your entry function
-5. Verify:
-   - No errors in execution log
-   - Output sheets created correctly
-   - Handles missing data gracefully
-   - Menu appears on spreadsheet refresh
+5. Check the execution log for errors
+6. Verify output sheets are created correctly
 
-**Edge Cases to Test:**
-- Empty Transactions sheet
+**Edge cases to test:**
+- Empty `Transactions` sheet
 - Missing required columns
-- Transactions with null/undefined values
-- Single transaction vs. thousands of transactions
-- Date ranges (single day, single month, multiple years)
+- Transactions with null/empty values
+- Single transaction vs. many transactions
+- Multiple months of data
 
-### 4. Submit a Pull Request
+---
+
+## Submitting a PR
 
 ```bash
+# 1. Fork and clone
+git clone https://github.com/sheetlink/sheetlink-recipes.git
+
+# 2. Create a branch
 git checkout -b recipe/your-recipe-name
-git add recipes/community/your-recipe-name/
+
+# 3. Add your files
+mkdir -p recipes/community/your-recipe-name
+# ... add recipe.gs, metadata.json, README.md
+
+# 4. Add your entry to manifest.json (in the "recipes" array)
+# ... edit manifest.json
+
+# 5. Commit and push
+git add recipes/community/your-recipe-name/ manifest.json
 git commit -m "feat: Add [Your Recipe Name] community recipe"
 git push origin recipe/your-recipe-name
 ```
 
 Open a PR with:
 - **Title:** `feat: Add [Recipe Name] community recipe`
-- **Description:**
-  - What the recipe does
-  - Who it's for
-  - What you tested
-  - Screenshots (if applicable)
+- **What it does** — brief description
+- **Columns required** — from the `Transactions` sheet
+- **What you tested** — edge cases covered
+- **Screenshots** — of the output sheet(s)
 
-### 5. Review Process
-
-We'll review your recipe for:
-- Privacy/security compliance (no external calls)
-- Code quality and readability
-- Error handling
-- Documentation completeness
-- Testing coverage
-
-We may request changes or improvements. Once approved, your recipe will be merged and available in the marketplace!
-
-## Recipe Ideas
-
-Looking for inspiration? Here are some recipe ideas the community might love:
-
-### Personal Finance
-- **Tax Prep Helper** - Categorize transactions by tax deduction type
-- **Savings Goals Tracker** - Track progress toward savings goals
-- **Debt Payoff Planner** - Snowball/avalanche debt repayment tracking
-- **Net Worth Tracker** - Track assets and liabilities over time
-
-### Business
-- **Invoice Tracker** - Match expenses to client projects for invoicing
-- **Expense Report Generator** - Format transactions for expense reimbursement
-- **1099 Contractor Report** - Track contractor payments for 1099 filing
-- **Sales Tax Calculator** - Calculate sales tax owed by jurisdiction
-
-### Advanced Analysis
-- **Category Trends** - YoY/MoM spending trends by category
-- **Seasonal Spending** - Identify seasonal spending patterns
-- **Merchant Analysis** - Top merchants by spend with trends
-- **Account Reconciliation** - Match transactions across accounts
-
-## Community
-
-- **Discussions:** [GitHub Discussions](https://github.com/sheetlink/sheetlink-recipes/discussions)
-- **Issues:** [Report bugs or request features](https://github.com/sheetlink/sheetlink-recipes/issues)
-- **Email:** recipes@sheetlink.app
-
-## Code of Conduct
-
-- Be respectful and inclusive
-- Provide constructive feedback
-- Focus on helping users solve real problems
-- Prioritize privacy and security
-
-## License
-
-By contributing, you agree to license your recipe under the MIT License.
+We review for privacy compliance (no external calls), code quality, error handling, and documentation. Once merged, the recipe appears in the marketplace automatically.
 
 ---
 
-**Ready to contribute?** Fork the repo and start building!
+## Recipe Ideas
+
+**Personal finance**
+- Tax prep helper — categorize transactions by deduction type
+- Savings goals tracker — progress toward named goals
+- Debt payoff planner — snowball/avalanche tracking
+- Net worth tracker — assets and liabilities over time
+
+**Business**
+- Invoice tracker — match expenses to client projects
+- Expense report generator — formatted for reimbursement
+- 1099 contractor report — track contractor payments
+- Mileage/reimbursement tracker
+
+**Analysis**
+- Category trends — YoY/MoM spending by category
+- Merchant analysis — top merchants by spend with trends
+- Seasonal spending patterns
+- Account reconciliation
+
+---
+
+## Questions?
+
+- **Discussions:** [github.com/sheetlink/sheetlink-recipes/discussions](https://github.com/sheetlink/sheetlink-recipes/discussions)
+- **Issues:** [github.com/sheetlink/sheetlink-recipes/issues](https://github.com/sheetlink/sheetlink-recipes/issues)
+
+By contributing, you agree to license your recipe under the MIT License.
