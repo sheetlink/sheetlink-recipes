@@ -1,12 +1,12 @@
 /**
  * SheetLink Recipe: Financial Statements
- * Version: 3.0.0
+ * Version: 2.1.0
  * Standalone Edition
  *
  * Description: Complete financial reporting suite with P&L, Balance Sheet, and Cash Flow
  *
- * Creates: Category Mapping, General Ledger, Financial Statements
- * Requires: date, amount, category_primary, pending, account_name, transaction_id columns
+ * Creates: Chart of Accounts, General Ledger, Financial Statements
+ * Requires: date, amount, category_primary, pending, account_name columns
  */
 
 
@@ -25,7 +25,7 @@ function runFinancialsRecipe(ss) {
       return;
     }
 
-    logRecipe("Financials", "Starting Financial Statements Suite v3.0");
+    logRecipe("Financials", "Starting Financial Statements Suite v2.0");
     showToast("Generating financial statements...", "Financial Statements", 3);
 
     // Get transactions sheet
@@ -59,26 +59,20 @@ function runFinancialsRecipe(ss) {
     formatTransactionDateColumns(transactionsSheet, headerMap);
     formatTransactionPendingColumn(transactionsSheet, headerMap);
 
-    // Rename legacy "Chart of Accounts" tab to "Category Mapping" if it exists
-    const legacyCoa = ss.getSheetByName("Chart of Accounts");
-    if (legacyCoa) {
-      legacyCoa.setName("Category Mapping");
-    }
+    // Create or get Chart of Accounts
+    const coaSheet = getOrCreateSheet(ss, "Chart of Accounts");
+    setupChartOfAccounts(coaSheet, transactionsSheet, headerMap, ss);
 
-    // Create or get Category Mapping sheet
-    const mappingSheet = getOrCreateSheet(ss, "Category Mapping");
-    setupCategoryMapping(mappingSheet, transactionsSheet, headerMap, ss);
-
-    // Create General Ledger
+    // Create General Ledger (formula-driven)
     const ledgerSheet = getOrCreateSheet(ss, "General Ledger");
-    setupGeneralLedgerV3(ledgerSheet, transactionsSheet, headerMap, mappingSheet, ss);
+    setupGeneralLedgerV2(ledgerSheet, transactionsSheet, headerMap, coaSheet, ss);
 
-    // Create consolidated Financial Statements
+    // Create consolidated Financial Statements (all in one tab)
     const statementsSheet = getOrCreateSheet(ss, "Financial Statements");
-    setupFinancialStatementsV3(statementsSheet, ledgerSheet, transactionsSheet, headerMap, mappingSheet, ss);
+    setupFinancialStatementsV2(statementsSheet, ledgerSheet, transactionsSheet, headerMap, coaSheet, ss);
 
     showToast("Financial statements generated successfully!", "Complete", 5);
-    logRecipe("Financials", "Recipe v3.0 completed successfully");
+    logRecipe("Financials", "Recipe v2.0 completed successfully");
     return { success: true, error: null };
 
   } catch (error) {
@@ -90,14 +84,14 @@ function runFinancialsRecipe(ss) {
 }
 
 /**
- * Setup Category Mapping tab
- * Maps Plaid categories to user-defined custom categories, type, and statement.
- * Preserves existing user edits on re-run.
+ * Setup Chart of Accounts with dynamic category detection
  */
-function setupCategoryMapping(sheet, transactionsSheet, headerMap, ss) {
-  // Row 1: Title
+function setupChartOfAccounts(sheet, transactionsSheet, headerMap, ss) {
+  sheet.clear();
+
+  // Row 1: Title (matching cashflow styling)
   sheet.getRange("A1")
-    .setValue("Category Mapping")
+    .setValue("Chart of Accounts")
     .setFontSize(18)
     .setFontWeight("bold")
     .setFontColor("#023820")
@@ -105,64 +99,65 @@ function setupCategoryMapping(sheet, transactionsSheet, headerMap, ss) {
 
   // Row 2: Description
   sheet.getRange("A2")
-    .setValue("Maps Plaid transaction categories to your custom categories, type, and statement.")
+    .setValue("Maps Plaid transaction categories to accounting categories. Edit mappings below:")
     .setFontSize(11)
     .setWrap(false)
     .setHorizontalAlignment("left");
 
-  // Row 3: Extended instructions
-  sheet.getRange("A3")
-    .setValue("You can reuse the same Custom Category across multiple Plaid categories. You can also add custom categories — just note that any custom category not tied to a Plaid category must be entered manually in the General Ledger (including Type and Statement). After editing mappings, re-run the recipe to rebuild the Financial Statements tab.")
-    .setFontSize(10)
-    .setFontColor("#6b7280")
-    .setWrap(true)
-    .setHorizontalAlignment("left");
-  sheet.setRowHeight(3, 50);
+  // Row 3: Blank
 
   // Row 4: Column headers
-  const headers = ["Plaid Category", "Custom Category", "Type", "Statement"];
+  const headers = ["Plaid Category", "Type", "Category", "Statement"];
   sheet.getRange(4, 1, 1, 4).setValues([headers]);
   sheet.getRange(4, 1, 1, 4)
     .setFontWeight("bold")
     .setBackground("#0b703a")
     .setFontColor("white");
 
-  // Default mappings: Plaid Category -> [Custom Category, Type, Statement]
+  // Default mappings (template for known categories)
   const defaultMappings = {
-    "INCOME":                    ["Income",                    "Revenue",  "P&L"],
-    "TRANSFER_IN":               ["Transfers In",              "Transfer", "Balance Sheet"],
-    "TRANSFER_OUT":              ["Transfers Out",             "Transfer", "Balance Sheet"],
-    "LOAN_DISBURSEMENTS":        ["Transfers In",              "Transfer", "Balance Sheet"],
-    "FOOD_AND_DRINK":            ["Meals & Entertainment",     "Expense",  "P&L"],
-    "GENERAL_MERCHANDISE":       ["General Merchandise",       "Expense",  "P&L"],
-    "GENERAL_SERVICES":          ["Services",                  "Expense",  "P&L"],
-    "ENTERTAINMENT":             ["Entertainment",             "Expense",  "P&L"],
-    "TRANSPORTATION":            ["Transportation",            "Expense",  "P&L"],
-    "TRAVEL":                    ["Travel",                    "Expense",  "P&L"],
-    "RENT_AND_UTILITIES":        ["Rent & Utilities",          "Expense",  "P&L"],
-    "HOME_IMPROVEMENT":          ["Home Improvement",          "Expense",  "P&L"],
-    "MEDICAL":                   ["Healthcare",                "Expense",  "P&L"],
-    "PERSONAL_CARE":             ["Personal Care",             "Expense",  "P&L"],
-    "LOAN_PAYMENTS":             ["Interest & Loan Payments",  "Expense",  "P&L"],
-    "BANK_FEES":                 ["Bank Fees",                 "Expense",  "P&L"],
-    "GOVERNMENT_AND_NON_PROFIT": ["Taxes & Government",        "Expense",  "P&L"],
-    "OTHER":                     ["Other Expenses",            "Expense",  "P&L"],
-    "BANK_ACCOUNT":              ["Cash - Checking",           "Asset",    "Balance Sheet"],
-    "CREDIT_CARD":               ["Credit Card Payable",       "Liability","Balance Sheet"],
-    "LOAN":                      ["Loans Payable",             "Liability","Balance Sheet"]
+    // Income categories
+    "INCOME": ["Revenue", "Income", "P&L"],
+    "TRANSFER_IN": ["Transfer", "Transfers In", "Balance Sheet"],
+    "TRANSFER_OUT": ["Transfer", "Transfers Out", "Balance Sheet"],
+    "LOAN_DISBURSEMENTS": ["Transfer", "Transfers In", "Balance Sheet"],
+
+    // Expense categories
+    "FOOD_AND_DRINK": ["Expense", "Meals & Entertainment", "P&L"],
+    "GENERAL_MERCHANDISE": ["Expense", "General Merchandise", "P&L"],
+    "GENERAL_SERVICES": ["Expense", "Services", "P&L"],
+    "ENTERTAINMENT": ["Expense", "Entertainment", "P&L"],
+    "TRANSPORTATION": ["Expense", "Transportation", "P&L"],
+    "TRAVEL": ["Expense", "Travel", "P&L"],
+    "RENT_AND_UTILITIES": ["Expense", "Rent & Utilities", "P&L"],
+    "HOME_IMPROVEMENT": ["Expense", "Home Improvement", "P&L"],
+    "MEDICAL": ["Expense", "Healthcare", "P&L"],
+    "PERSONAL_CARE": ["Expense", "Personal Care", "P&L"],
+    "LOAN_PAYMENTS": ["Expense", "Interest & Loan Payments", "P&L"],
+    "BANK_FEES": ["Expense", "Bank Fees", "P&L"],
+    "GOVERNMENT_AND_NON_PROFIT": ["Expense", "Taxes & Government", "P&L"],
+    "OTHER": ["Expense", "Other Expenses", "P&L"],
+
+    // Balance Sheet categories
+    "BANK_ACCOUNT": ["Asset", "Cash - Checking", "Balance Sheet"],
+    "CREDIT_CARD": ["Liability", "Credit Card Payable", "Balance Sheet"],
+    "LOAN": ["Liability", "Loans Payable", "Balance Sheet"]
   };
 
-  // Scan Transactions for all unique Plaid categories
+  // Scan Transactions sheet for all unique categories
   const categoryCol = getColumnIndex(headerMap, 'category_primary');
   const transactionsData = transactionsSheet.getDataRange().getValues();
   const uniqueCategories = new Set();
+
+  // Start from row 2 (skip header)
   for (let i = 1; i < transactionsData.length; i++) {
-    const category = transactionsData[i][categoryCol - 1];
-    if (category && category !== "") uniqueCategories.add(category);
+    const category = transactionsData[i][categoryCol - 1]; // -1 for 0-indexed array
+    if (category && category !== "") {
+      uniqueCategories.add(category);
+    }
   }
 
-  // Read existing user mappings to preserve edits
-  // New column order: Plaid Category (A) | Custom Category (B) | Type (C) | Statement (D)
+  // Read existing mappings from the sheet (if any) to preserve user edits
   const existingMappings = {};
   if (sheet.getLastRow() >= 5) {
     try {
@@ -171,153 +166,68 @@ function setupCategoryMapping(sheet, transactionsSheet, headerMap, ss) {
         const plaidCategory = row[0];
         if (plaidCategory && plaidCategory !== "") {
           existingMappings[plaidCategory] = {
-            customCategory: row[1],
-            type: row[2],
+            type: row[1],
+            category: row[2],
             statement: row[3]
           };
         }
       });
     } catch (e) {
-      // If reading fails, use defaults
+      // If reading fails, just use defaults
     }
   }
 
-  // Build final mappings
+  // Build final mappings array: include all unique categories from Transactions
   const mappings = [];
   uniqueCategories.forEach(category => {
     if (existingMappings[category]) {
-      mappings.push([category, existingMappings[category].customCategory, existingMappings[category].type, existingMappings[category].statement]);
+      // Preserve user's existing mapping
+      mappings.push([category, existingMappings[category].type, existingMappings[category].category, existingMappings[category].statement]);
     } else if (defaultMappings[category]) {
+      // Use predefined mapping for new categories
       mappings.push([category, ...defaultMappings[category]]);
     } else {
-      mappings.push([category, "Other Expenses", "Expense", "P&L"]);
+      // Auto-classify unknown categories as Expense > Other Expenses
+      mappings.push([category, "Expense", "Other Expenses", "P&L"]);
     }
   });
 
-  // Sort by Type, then Custom Category
+  // Sort by Type, then by Category
   mappings.sort((a, b) => {
-    if (a[2] !== b[2]) return a[2].localeCompare(b[2]);
-    return a[1].localeCompare(b[1]);
+    if (a[1] !== b[1]) return a[1].localeCompare(b[1]); // Sort by Type
+    return a[2].localeCompare(b[2]); // Then by Category
   });
 
-  // Clear old data rows only (preserve header rows)
-  if (sheet.getLastRow() >= 5) {
-    sheet.getRange(5, 1, sheet.getLastRow() - 4, 4).clearContent().clearFormat();
-  }
-
   sheet.getRange(5, 1, mappings.length, 4).setValues(mappings);
-  // Plaid Category (col A) read-only feel — no background
-  // Custom Category, Type, Statement — yellow to signal editable
   sheet.getRange(5, 2, mappings.length, 3).setBackground("#fffbea");
 
-  sheet.setColumnWidth(1, 220);
-  sheet.setColumnWidth(2, 200);
-  sheet.setColumnWidth(3, 120);
+  sheet.setColumnWidth(1, 200);
+  sheet.setColumnWidth(2, 150);
+  sheet.setColumnWidth(3, 200);
   sheet.setColumnWidth(4, 120);
   sheet.setFrozenRows(4);
 }
 
 /**
- * Setup General Ledger v3
- * Columns: Date | Transaction ID | Vendor | Plaid Category | Custom Category | Type | Statement | Account Name | Account Type | Debit | Credit | Memo
- * Custom Category, Type, Statement are formula-driven from Category Mapping but user-overridable.
- * Manual overrides persist across re-runs: if a cell value differs from what the formula would produce, it is preserved.
+ * Setup General Ledger v2 - Formula-Driven
  */
-function setupGeneralLedgerV3(sheet, transactionsSheet, headerMap, mappingSheet, ss) {
+function setupGeneralLedgerV2(sheet, transactionsSheet, headerMap, coaSheet, ss) {
+  sheet.clear();
+
   let currentRow = 1;
 
-  // Get column indices from transactions sheet
+  // Get column letters from transactions sheet
   const dateCol = getColumnIndex(headerMap, 'date');
   const amountCol = getColumnIndex(headerMap, 'amount');
   const pendingCol = getColumnIndex(headerMap, 'pending');
   const transactionIdCol = getColumnIndex(headerMap, 'transaction_id');
-  const categoryPrimaryCol = getColumnIndex(headerMap, 'category_primary');
-  const merchantCol = getColumnIndex(headerMap, 'merchant_name');
-  const accountNameCol = getColumnIndex(headerMap, 'account_name');
-  const descriptionRawCol = getColumnIndex(headerMap, 'description_raw');
 
   const dateColLetter = columnIndexToLetter(dateCol);
   const amountColLetter = columnIndexToLetter(amountCol);
   const pendingColLetter = columnIndexToLetter(pendingCol);
   const txnIdColLetter = columnIndexToLetter(transactionIdCol);
-  const categoryPrimaryColLetter = columnIndexToLetter(categoryPrimaryCol);
-  const merchantColLetter = columnIndexToLetter(merchantCol);
-  const accountNameColLetter = columnIndexToLetter(accountNameCol);
-  const descriptionRawColLetter = columnIndexToLetter(descriptionRawCol);
 
-  // --- Build Category Mapping lookup in memory for override detection ---
-  // mappingSheet columns: A=Plaid Category, B=Custom Category, C=Type, D=Statement
-  const mappingData = mappingSheet.getLastRow() >= 5
-    ? mappingSheet.getRange(5, 1, mappingSheet.getLastRow() - 4, 4).getValues()
-    : [];
-  const mappingLookup = {}; // plaidCategory -> {customCategory, type, statement}
-  mappingData.forEach(row => {
-    const plaid = row[0];
-    if (plaid && plaid !== "") {
-      mappingLookup[plaid] = { customCategory: row[1], type: row[2], statement: row[3] };
-    }
-  });
-  // Also build reverse lookup: customCategory -> {type, statement} for XLOOKUP fallback resolution
-  const customCategoryLookup = {};
-  mappingData.forEach(row => {
-    const customCat = row[1];
-    if (customCat && customCat !== "" && !customCategoryLookup[customCat]) {
-      customCategoryLookup[customCat] = { type: row[2], statement: row[3] };
-    }
-  });
-
-  // --- Read existing GL to detect manual overrides ---
-  // GL columns (v3): A=Date, B=TxnId, C=Vendor, D=PlaidCat, E=CustomCat, F=Type, G=Statement, H=AccountName, I=AccountType, J=Debit, K=Credit, L=Memo
-  // Find existing ledger header row to locate data
-  let existingLedgerHeaderRow = -1;
-  const existingLastRow = sheet.getLastRow();
-  if (existingLastRow > 0) {
-    const existingData = sheet.getRange(1, 1, existingLastRow, 2).getValues();
-    for (let i = 0; i < existingData.length; i++) {
-      if (existingData[i][0] === 'Date' && existingData[i][1] === 'Transaction ID') {
-        existingLedgerHeaderRow = i + 1; // 1-indexed
-        break;
-      }
-    }
-  }
-
-  // Map of transaction_id -> {customCategory, type, statement} for manual overrides
-  const manualOverrides = {};
-  if (existingLedgerHeaderRow > 0 && existingLastRow > existingLedgerHeaderRow) {
-    const numDataRows = existingLastRow - existingLedgerHeaderRow;
-    const existingGLData = sheet.getRange(existingLedgerHeaderRow + 1, 1, numDataRows, 12).getValues();
-    existingGLData.forEach(row => {
-      const txnId    = row[1];  // Col B
-      const plaidCat = row[3];  // Col D
-      const customCat = row[4]; // Col E
-      const type     = row[5];  // Col F
-      const statement = row[6]; // Col G
-
-      if (!txnId) return;
-
-      // Resolve what the formula would produce for this Plaid Category
-      const expected = mappingLookup[plaidCat] || { customCategory: "Uncategorized", type: "Expense", statement: "P&L" };
-
-      const customCatOverridden = customCat !== "" && customCat !== expected.customCategory;
-      // For Type and Statement, resolve from custom category (may differ from plaid mapping if custom cat was overridden)
-      const resolvedType = customCategoryLookup[customCat] ? customCategoryLookup[customCat].type : expected.type;
-      const resolvedStatement = customCategoryLookup[customCat] ? customCategoryLookup[customCat].statement : expected.statement;
-
-      const typeOverridden = type !== "" && type !== resolvedType;
-      const statementOverridden = statement !== "" && statement !== resolvedStatement;
-
-      if (customCatOverridden || typeOverridden || statementOverridden) {
-        manualOverrides[txnId] = {
-          customCategory: customCatOverridden ? customCat : null,
-          type: typeOverridden ? type : null,
-          statement: statementOverridden ? statement : null
-        };
-      }
-    });
-  }
-
-  // --- Clear and rebuild sheet ---
-  // Row 1: Title
+  // Row 1: Title (matching cashflow styling)
   sheet.getRange("A1")
     .setValue("General Ledger")
     .setFontSize(18)
@@ -334,20 +244,10 @@ function setupGeneralLedgerV3(sheet, transactionsSheet, headerMap, mappingSheet,
     .setHorizontalAlignment("left");
   currentRow++;
 
-  // Row 3: Override instructions
-  sheet.getRange("A3")
-    .setValue("Custom Category, Type, and Statement (yellow columns) are auto-mapped from the Category Mapping tab. You can override any cell directly — manual overrides will persist when the recipe is re-run. To reset a cell back to auto-mapping, clear it and re-run the recipe.")
-    .setFontSize(10)
-    .setFontColor("#6b7280")
-    .setWrap(true)
-    .setHorizontalAlignment("left");
-  sheet.setRowHeight(3, 50);
+  // Row 3: Blank
   currentRow++;
 
-  // Row 4: Blank
-  currentRow++;
-
-  // Row 5: Account Balance Configuration
+  // Row 4: Account Balances Configuration Table
   sheet.getRange(currentRow, 1).setValue("Account Balance Configuration")
     .setFontSize(12)
     .setFontWeight("bold")
@@ -358,70 +258,73 @@ function setupGeneralLedgerV3(sheet, transactionsSheet, headerMap, mappingSheet,
   sheet.getRange(currentRow, 1).setFontStyle("italic").setFontSize(10);
   currentRow++;
 
-  // Account config table headers
+  // Account mapping table headers
   const accountConfigHeaders = ["Account Name (from Transactions)", "Account Type", "Starting Balance", "As of Date"];
   sheet.getRange(currentRow, 1, 1, 4).setValues([accountConfigHeaders]);
   sheet.getRange(currentRow, 1, 1, 4).setFontWeight("bold").setBackground("#f3f3f3");
+  const accountConfigHeaderRow = currentRow;
   currentRow++;
 
+  // Auto-detect unique accounts from Transactions sheet
   const accountConfigStartRow = currentRow;
-  const accountNameColIdx = getColumnIndex(headerMap, 'account_name');
+  const accountNameCol = getColumnIndex(headerMap, 'account_name');
+  const accountNameColLetter = columnIndexToLetter(accountNameCol);
 
-  // Read existing account config to preserve user edits (Starting Balance, Account Type, As of Date)
-  const existingAccountConfig = {};
-  if (existingLedgerHeaderRow > 0) {
-    const glAllData = sheet.getRange(1, 1, existingLedgerHeaderRow, 4).getValues();
-    // Find config section by scanning for rows between "Account Name" header and blank row
-    let inConfig = false;
-    for (let i = 0; i < glAllData.length; i++) {
-      if (glAllData[i][0] === "Account Name (from Transactions)") { inConfig = true; continue; }
-      if (inConfig && (!glAllData[i][0] || glAllData[i][0] === "Date")) break;
-      if (inConfig && glAllData[i][0]) {
-        existingAccountConfig[glAllData[i][0]] = {
-          accountType: glAllData[i][1],
-          startingBalance: glAllData[i][2],
-          asOfDate: glAllData[i][3]
-        };
-      }
-    }
-  }
+  // Get all account names
+  const lastRow = transactionsSheet.getLastRow();
+  if (lastRow > 1) {
+    const accountNames = transactionsSheet.getRange(2, accountNameCol, lastRow - 1, 1).getValues();
 
-  const lastTxnRowForAccounts = transactionsSheet.getLastRow();
-  if (lastTxnRowForAccounts > 1) {
-    const accountNames = transactionsSheet.getRange(2, accountNameColIdx, lastTxnRowForAccounts - 1, 1).getValues();
-    const uniqueAccounts = [...new Set(accountNames.map(r => r[0]).filter(n => n && n.trim() !== ''))].sort();
+    // Get unique accounts
+    const uniqueAccounts = [...new Set(accountNames.map(row => row[0]).filter(name => name && name.trim() !== ''))];
 
+    // Sort accounts
+    uniqueAccounts.sort();
+
+    // Add each unique account
     uniqueAccounts.forEach(accountName => {
-      let accountType = "Asset";
-      const nameLower = accountName.toLowerCase();
-      if (nameLower.includes("credit card") || nameLower.includes("credit")) accountType = "Liability";
-      else if (nameLower.includes("loan") || nameLower.includes("mortgage")) accountType = "Liability";
+      // Auto-detect account type based on name
+      let accountType = "Asset"; // Default
+      let startingBalance = 0;
 
-      const existing = existingAccountConfig[accountName];
-      const now = new Date();
-      const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (accountName.toLowerCase().includes("credit card") || accountName.toLowerCase().includes("credit")) {
+        accountType = "Liability";
+      } else if (accountName.toLowerCase().includes("loan") || accountName.toLowerCase().includes("mortgage")) {
+        accountType = "Liability";
+      } else if (accountName.toLowerCase().includes("checking") ||
+                 accountName.toLowerCase().includes("savings") ||
+                 accountName.toLowerCase().includes("bank") ||
+                 accountName.toLowerCase().includes("cash")) {
+        accountType = "Asset";
+      }
 
       sheet.getRange(currentRow, 1).setValue(accountName).setBackground("#fffbea");
-      sheet.getRange(currentRow, 2).setValue(existing ? existing.accountType : accountType).setBackground("#fffbea");
-      sheet.getRange(currentRow, 3).setValue(existing ? existing.startingBalance : 0).setNumberFormat("$#,##0.00").setBackground("#fffbea");
-      sheet.getRange(currentRow, 4).setValue(existing ? existing.asOfDate : todayDate).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
+      sheet.getRange(currentRow, 2).setValue(accountType).setBackground("#fffbea");
+      sheet.getRange(currentRow, 3).setValue(startingBalance).setNumberFormat("$#,##0.00").setBackground("#fffbea");
+      // Set As of Date to today's date as hardcoded value
+      const now = new Date();
+      const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      sheet.getRange(currentRow, 4).setValue(todayDate).setNumberFormat("yyyy-mm-dd").setBackground("#fffbea");
       currentRow++;
     });
   }
 
   const accountConfigEndRow = currentRow - 1;
+
+  // Create named range for the entire config table (for lookup in formulas)
   createNamedRange(sheet, "GL_AccountConfig", `A${accountConfigStartRow}:D${accountConfigEndRow}`);
+
+  // Create a named range for GL_CashBalance (defaults to 0, user can edit the first account's starting balance)
   if (accountConfigEndRow >= accountConfigStartRow) {
     createNamedRange(sheet, "GL_CashBalance", `C${accountConfigStartRow}`);
   }
 
   currentRow++; // Blank row
 
-  // Ledger headers — new column order (12 cols)
-  // A=Date, B=TxnID, C=Vendor, D=Plaid Category, E=Custom Category, F=Type, G=Statement, H=Account Name, I=Account Type, J=Debit, K=Credit, L=Memo
-  const headers = ["Date", "Transaction ID", "Vendor", "Plaid Category", "Custom Category", "Type", "Statement", "Account Name", "Account Type", "Debit", "Credit", "Memo"];
-  sheet.getRange(currentRow, 1, 1, 12).setValues([headers]);
-  sheet.getRange(currentRow, 1, 1, 12)
+  // Ledger headers
+  const headers = ["Date", "Transaction ID", "Vendor", "Category", "Type", "Account Name", "Account Type", "Debit", "Credit", "Memo"];
+  sheet.getRange(currentRow, 1, 1, 10).setValues([headers]);
+  sheet.getRange(currentRow, 1, 1, 10)
     .setFontWeight("bold")
     .setBackground("#0b703a")
     .setFontColor("white")
@@ -430,113 +333,95 @@ function setupGeneralLedgerV3(sheet, transactionsSheet, headerMap, mappingSheet,
   const ledgerHeaderRow = currentRow;
   currentRow++;
 
+  // Get last row of transactions
   const lastTxnRow = transactionsSheet.getLastRow();
 
   if (lastTxnRow > 1) {
     const dataStartRow = currentRow;
-    const numTxns = lastTxnRow - 1;
+    const numTxns = lastTxnRow - 1; // Excluding header
 
-    // Read all transaction IDs to resolve overrides
-    const txnIdValues = transactionsSheet.getRange(2, transactionIdCol, numTxns, 1).getValues();
+    // Get column letters for all needed columns
+    const merchantCol = columnIndexToLetter(getColumnIndex(headerMap, 'merchant_name'));
+    const categoryCol = columnIndexToLetter(getColumnIndex(headerMap, 'category_primary'));
+    const accountNameCol = columnIndexToLetter(getColumnIndex(headerMap, 'account_name'));
+    const descriptionRawCol = columnIndexToLetter(getColumnIndex(headerMap, 'description_raw'));
 
-    // Build formulas batch
+    // Build formulas array for batch operation (much faster!)
     const formulas = [];
-    const overrideCells = []; // Track cells that need manual override values applied after formula write
 
     for (let i = 0; i < numTxns; i++) {
-      const txnRow = i + 2;
+      const txnRow = i + 2; // Start from row 2 in Transactions
       const ledgerRow = dataStartRow + i;
-      const txnId = txnIdValues[i][0];
-      const override = manualOverrides[txnId] || {};
-
-      // Mapping sheet data range: A5:D down to last row
-      const mappingLastRow = mappingSheet.getLastRow();
-      const mappingRange = `'Category Mapping'!$A$5:$D$${Math.max(mappingLastRow, 5)}`;
 
       const row = [
-        // A: Date
+        // Column A: Date (convert text to date if needed)
         `=DATEVALUE(Transactions!${dateColLetter}${txnRow})`,
-        // B: Transaction ID
+
+        // Column B: Transaction ID
         `=Transactions!${txnIdColLetter}${txnRow}`,
-        // C: Vendor
-        `=Transactions!${merchantColLetter}${txnRow}`,
-        // D: Plaid Category (direct reference)
-        `=Transactions!${categoryPrimaryColLetter}${txnRow}`,
-        // E: Custom Category — XLOOKUP Plaid Category against mapping col A, return col B
-        `=IFERROR(XLOOKUP(D${ledgerRow}, ${mappingRange.replace('$D', '$A').replace('A$5:$D', 'A$5:$A')}, ${mappingRange.replace('$A$5:$D', '$B$5:$B')}), "Uncategorized")`,
-        // F: Type — XLOOKUP Custom Category against mapping col B, return col C
-        `=IFERROR(XLOOKUP(E${ledgerRow}, ${mappingRange.replace('$A$5:$D', '$B$5:$B')}, ${mappingRange.replace('$A$5:$D', '$C$5:$C')}), "Expense")`,
-        // G: Statement — XLOOKUP Custom Category against mapping col B, return col D
-        `=IFERROR(XLOOKUP(E${ledgerRow}, ${mappingRange.replace('$A$5:$D', '$B$5:$B')}, ${mappingRange.replace('$A$5:$D', '$D$5:$D')}), "P&L")`,
-        // H: Account Name
-        `=Transactions!${accountNameColLetter}${txnRow}`,
-        // I: Account Type — XLOOKUP Account Name against config table
-        `=IFERROR(XLOOKUP(H${ledgerRow}, 'General Ledger'!$A$${accountConfigStartRow}:$A$${accountConfigEndRow}, 'General Ledger'!$B$${accountConfigStartRow}:$B$${accountConfigEndRow}), "")`,
-        // J: Debit
-        `=IF(AND(Transactions!${amountColLetter}${txnRow}<0, I${ledgerRow}="Asset"), ABS(Transactions!${amountColLetter}${txnRow}), IF(AND(Transactions!${amountColLetter}${txnRow}<0, I${ledgerRow}="Liability"), ABS(Transactions!${amountColLetter}${txnRow}), ""))`,
-        // K: Credit
-        `=IF(AND(Transactions!${amountColLetter}${txnRow}>0, I${ledgerRow}="Liability"), ABS(Transactions!${amountColLetter}${txnRow}), IF(AND(Transactions!${amountColLetter}${txnRow}>0, I${ledgerRow}="Asset"), ABS(Transactions!${amountColLetter}${txnRow}), ""))`,
-        // L: Memo
-        `=Transactions!${descriptionRawColLetter}${txnRow}`
+
+        // Column C: Description
+        `=Transactions!${merchantCol}${txnRow}`,
+
+        // Column D: Category (from Chart of Accounts lookup)
+        `=IFERROR(VLOOKUP(Transactions!${categoryCol}${txnRow}, 'Chart of Accounts'!$A$5:$C$100, 3, FALSE), "Uncategorized")`,
+
+        // Column E: Type (from Chart of Accounts lookup)
+        `=IFERROR(VLOOKUP(Transactions!${categoryCol}${txnRow}, 'Chart of Accounts'!$A$5:$B$100, 2, FALSE), "Expense")`,
+
+        // Column F: Account Name (from Transactions)
+        `=Transactions!${accountNameCol}${txnRow}`,
+
+        // Column G: Account Type (lookup Account Name in config table to get Asset/Liability)
+        `=IFERROR(VLOOKUP(F${ledgerRow}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 2, FALSE), "")`,
+
+        // Column H: Debit
+        // If amt < 0 and Account Type = Asset: Debit = ABS(amt)
+        // If amt < 0 and Account Type = Liability: Debit = ABS(amt)
+        `=IF(AND(Transactions!${amountColLetter}${txnRow}<0, G${ledgerRow}="Asset"), ABS(Transactions!${amountColLetter}${txnRow}), IF(AND(Transactions!${amountColLetter}${txnRow}<0, G${ledgerRow}="Liability"), ABS(Transactions!${amountColLetter}${txnRow}), ""))`,
+
+        // Column I: Credit
+        // If amt > 0 and Account Type = Liability: Credit = ABS(amt)
+        // If amt > 0 and Account Type = Asset: Credit = ABS(amt)
+        `=IF(AND(Transactions!${amountColLetter}${txnRow}>0, G${ledgerRow}="Liability"), ABS(Transactions!${amountColLetter}${txnRow}), IF(AND(Transactions!${amountColLetter}${txnRow}>0, G${ledgerRow}="Asset"), ABS(Transactions!${amountColLetter}${txnRow}), ""))`,
+
+        // Column J: Memo (description_raw from Transactions)
+        `=Transactions!${descriptionRawCol}${txnRow}`
       ];
 
       formulas.push(row);
 
-      // Track overrides to apply after formula write
-      if (override.customCategory || override.type || override.statement) {
-        overrideCells.push({ ledgerRow, override });
-      }
-
+      // Batch every 1000 rows to avoid memory issues
       if (formulas.length >= 1000 || i === numTxns - 1) {
         const startRow = dataStartRow + i - formulas.length + 1;
-        sheet.getRange(startRow, 1, formulas.length, 12).setFormulas(formulas);
-        formulas.length = 0;
-        SpreadsheetApp.flush();
+        sheet.getRange(startRow, 1, formulas.length, 10).setFormulas(formulas);
+        formulas.length = 0; // Clear array
+        SpreadsheetApp.flush(); // Force update
       }
     }
 
-    // Apply yellow background to Custom Category (E), Type (F), Statement (G) columns
-    sheet.getRange(dataStartRow, 5, numTxns, 3).setBackground("#fffbea");
-
-    // Format date and currency columns
+    // Format columns
     sheet.getRange(dataStartRow, 1, numTxns, 1).setNumberFormat("yyyy-mm-dd");
-    sheet.getRange(dataStartRow, 10, numTxns, 2).setNumberFormat("$#,##0.00"); // Debit (J) and Credit (K)
-
-    // Re-apply manual overrides as values (overwrite formulas for overridden cells only)
-    overrideCells.forEach(({ ledgerRow, override }) => {
-      if (override.customCategory) {
-        sheet.getRange(ledgerRow, 5).setValue(override.customCategory);
-      }
-      if (override.type) {
-        sheet.getRange(ledgerRow, 6).setValue(override.type);
-      }
-      if (override.statement) {
-        sheet.getRange(ledgerRow, 7).setValue(override.statement);
-      }
-    });
+    sheet.getRange(dataStartRow, 8, numTxns, 2).setNumberFormat("$#,##0.00"); // Debit and Credit columns
   }
 
   sheet.setFrozenRows(ledgerHeaderRow);
-  sheet.setColumnWidth(1, 100);  // Date
-  sheet.setColumnWidth(2, 160);  // Transaction ID
-  sheet.setColumnWidth(3, 200);  // Vendor
-  sheet.setColumnWidth(4, 180);  // Plaid Category
-  sheet.setColumnWidth(5, 180);  // Custom Category
-  sheet.setColumnWidth(6, 120);  // Type
-  sheet.setColumnWidth(7, 120);  // Statement
-  sheet.setColumnWidth(8, 180);  // Account Name
-  sheet.setColumnWidth(9, 120);  // Account Type
-  sheet.setColumnWidth(10, 100); // Debit
-  sheet.setColumnWidth(11, 100); // Credit
-  sheet.setColumnWidth(12, 400); // Memo
+  sheet.setColumnWidth(1, 100); // Date
+  sheet.setColumnWidth(2, 150); // Transaction ID
+  sheet.setColumnWidth(3, 200); // Vendor
+  sheet.setColumnWidth(4, 180); // Category
+  sheet.setColumnWidth(5, 120); // Type
+  sheet.setColumnWidth(6, 180); // Account Name
+  sheet.setColumnWidth(7, 120); // Account Type
+  sheet.setColumnWidth(8, 100); // Debit
+  sheet.setColumnWidth(9, 100); // Credit
+  sheet.setColumnWidth(10, 400); // Memo - fixed width 400
 }
 
 /**
- * Setup Financial Statements v3 - Consolidated with Monthly Trending
- * GL columns: A=Date, B=TxnID, C=Vendor, D=Plaid Category, E=Custom Category, F=Type, G=Statement, H=Account Name, I=Account Type, J=Debit, K=Credit, L=Memo
- * SUMIFS reference: Category=col E ($E:$E), Type=col F ($F:$F), Statement=col G ($G:$G), Debit=col J ($J:$J), Credit=col K ($K:$K), Date=col A ($A:$A), Account=col H ($H:$H)
+ * Setup Financial Statements v2 - Consolidated with Monthly Trending
  */
-function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, headerMap, mappingSheet, ss) {
+function setupFinancialStatementsV2(sheet, ledgerSheet, transactionsSheet, headerMap, coaSheet, ss) {
   sheet.clear();
 
   let currentRow = 1;
@@ -630,41 +515,47 @@ function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, heade
   sheet.getRange(currentRow, 1).setValue("REVENUE").setFontWeight("bold");
   currentRow++;
 
-  // Revenue rows (pull from Category Mapping dynamically)
+  // Revenue rows (pull from COA dynamically)
   const plStartRow = currentRow;
 
-  // Category Mapping columns: A=Plaid Category, B=Custom Category, C=Type, D=Statement
-  const mappingData = mappingSheet.getLastRow() >= 5
-    ? mappingSheet.getRange(5, 1, mappingSheet.getLastRow() - 4, 4).getValues()
-    : [];
+  // Get revenue accounts from Chart of Accounts sheet
+  const coaData = coaSheet.getDataRange().getValues();
+  const revenueAccountsMap = {}; // Map of accountName -> {plaidCategory, type}
 
-  const revenueAccountsMap = {}; // customCategory -> type
-  for (let i = 0; i < mappingData.length; i++) {
-    const type      = mappingData[i][2]; // Col C: Type
-    const customCat = mappingData[i][1]; // Col B: Custom Category
-    const statement = mappingData[i][3]; // Col D: Statement
-    if (type === "Revenue" && statement === "P&L" && customCat && !revenueAccountsMap[customCat]) {
-      revenueAccountsMap[customCat] = type;
+  // Start from row 5 (skip headers), extract all unique Revenue account names where Statement = "P&L"
+  for (let i = 4; i < coaData.length; i++) {
+    const plaidCategory = coaData[i][0]; // Column A: Plaid Category
+    const accountType = coaData[i][1]; // Column B: Type
+    const accountName = coaData[i][2]; // Column C: Category
+    const statement = coaData[i][3]; // Column D: Statement
+
+    if (accountType === "Revenue" && statement === "P&L" && accountName) {
+      // Store the FIRST Plaid category and type for this account name (handles duplicates)
+      if (!revenueAccountsMap[accountName]) {
+        revenueAccountsMap[accountName] = { plaidCategory, type: accountType };
+      }
     }
   }
 
   Object.keys(revenueAccountsMap).forEach((accountName) => {
-    const type = revenueAccountsMap[accountName];
+    const { plaidCategory, type } = revenueAccountsMap[accountName];
 
     sheet.getRange(currentRow, 1).setValue(accountName);
     sheet.getRange(currentRow, 2).setValue(type);
 
+    // Monthly columns (now starting at column 3) - sum from General Ledger using Type and Category filter
     months.forEach((month, idx) => {
       const headerCol = columnIndexToLetter(3 + idx);
       const accountRef = `$A${currentRow}`;
       const typeRef = `$B${currentRow}`;
 
-      // Revenue = Debits - Credits (GL col E=Custom Category, F=Type, J=Debit, K=Credit, A=Date)
+      // Revenue = Debits - Credits where Type and Category match (flipped to make positive)
+      // Sum Debits for this Type/Category and date range, minus Credits
       sheet.getRange(currentRow, 3 + idx).setFormula(
-        `=SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$E:$E, ${accountRef}, 'General Ledger'!$F:$F, ${typeRef}, ` +
+        `=SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$D:$D, ${accountRef}, 'General Ledger'!$E:$E, ${typeRef}, ` +
         `'General Ledger'!$A:$A, ">="&${headerCol}$${plHeaderRow}, ` +
         `'General Ledger'!$A:$A, "<"&EOMONTH(${headerCol}$${plHeaderRow}, 0)+1) - ` +
-        `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$E:$E, ${accountRef}, 'General Ledger'!$F:$F, ${typeRef}, ` +
+        `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$D:$D, ${accountRef}, 'General Ledger'!$E:$E, ${typeRef}, ` +
         `'General Ledger'!$A:$A, ">="&${headerCol}$${plHeaderRow}, ` +
         `'General Ledger'!$A:$A, "<"&EOMONTH(${headerCol}$${plHeaderRow}, 0)+1)`
       );
@@ -691,33 +582,43 @@ function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, heade
 
   const expenseStartRow = currentRow;
 
-  const expenseAccountsMap = {}; // customCategory -> type
-  for (let i = 0; i < mappingData.length; i++) {
-    const type      = mappingData[i][2];
-    const customCat = mappingData[i][1];
-    const statement = mappingData[i][3];
-    if (type === "Expense" && statement === "P&L" && customCat && !expenseAccountsMap[customCat]) {
-      expenseAccountsMap[customCat] = type;
+  // Get expense accounts from Chart of Accounts sheet
+  const expenseAccountsMap = {}; // Map of accountName -> {plaidCategory, type}
+
+  // Extract all unique Expense account names where Statement = "P&L"
+  for (let i = 4; i < coaData.length; i++) {
+    const plaidCategory = coaData[i][0]; // Column A: Plaid Category
+    const accountType = coaData[i][1]; // Column B: Type
+    const accountName = coaData[i][2]; // Column C: Category
+    const statement = coaData[i][3]; // Column D: Statement
+
+    if (accountType === "Expense" && statement === "P&L" && accountName) {
+      // Store the FIRST Plaid category and type for this account name (handles duplicates)
+      if (!expenseAccountsMap[accountName]) {
+        expenseAccountsMap[accountName] = { plaidCategory, type: accountType };
+      }
     }
   }
 
   Object.keys(expenseAccountsMap).forEach((accountName) => {
-    const type = expenseAccountsMap[accountName];
+    const { plaidCategory, type } = expenseAccountsMap[accountName];
 
     sheet.getRange(currentRow, 1).setValue(accountName);
     sheet.getRange(currentRow, 2).setValue(type);
 
+    // Monthly columns (now starting at column 3) - sum from General Ledger using Type and Category filter
     months.forEach((month, idx) => {
       const headerCol = columnIndexToLetter(3 + idx);
       const accountRef = `$A${currentRow}`;
       const typeRef = `$B${currentRow}`;
 
-      // Expenses = Debits - Credits (GL col E=Custom Category, F=Type, J=Debit, K=Credit)
+      // Expenses = Debits - Credits where Type and Category match (naturally negative for expenses)
+      // For expense transactions: Credits > Debits, so Debits - Credits = negative
       sheet.getRange(currentRow, 3 + idx).setFormula(
-        `=SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$E:$E, ${accountRef}, 'General Ledger'!$F:$F, ${typeRef}, ` +
+        `=SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$D:$D, ${accountRef}, 'General Ledger'!$E:$E, ${typeRef}, ` +
         `'General Ledger'!$A:$A, ">="&${headerCol}$${plHeaderRow}, ` +
         `'General Ledger'!$A:$A, "<"&EOMONTH(${headerCol}$${plHeaderRow}, 0)+1) - ` +
-        `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$E:$E, ${accountRef}, 'General Ledger'!$F:$F, ${typeRef}, ` +
+        `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$D:$D, ${accountRef}, 'General Ledger'!$E:$E, ${typeRef}, ` +
         `'General Ledger'!$A:$A, ">="&${headerCol}$${plHeaderRow}, ` +
         `'General Ledger'!$A:$A, "<"&EOMONTH(${headerCol}$${plHeaderRow}, 0)+1)`
       );
@@ -844,23 +745,25 @@ function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, heade
       // 1. If month end = as-of date: show exact starting balance
       // 2. If month end < as-of date: work backwards (reverse transactions between month-end and as-of date)
       // 3. If month end > as-of date: work forwards (add net change from as-of to month-end)
-      // GL columns: A=Date, H=Account Name, J=Debit, K=Credit
       const formula =
         `=IF(INT(${monthEndDate})=INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0)), ` +
+        // Exact match: show starting balance
         `IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 3, FALSE), 0), ` +
         `IF(${monthEndDate}<IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0), ` +
+        // Month ends BEFORE as-of date: reverse transactions (subtract debits, add credits)
         `IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 3, FALSE), 0) - ` +
-        `SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(${monthEndDate}), ` +
         `'General Ledger'!$A:$A, "<="&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0))) + ` +
-        `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(${monthEndDate}), ` +
         `'General Ledger'!$A:$A, "<="&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0))), ` +
+        // Month ends AFTER as-of date: add net change from as-of to month-end
         `IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 3, FALSE), 0) + ` +
-        `SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0)), ` +
         `'General Ledger'!$A:$A, "<="&INT(${monthEndDate})) - ` +
-        `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0)), ` +
         `'General Ledger'!$A:$A, "<="&INT(${monthEndDate}))))`;
 
@@ -912,25 +815,31 @@ function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, heade
       const accountRef = `$A${currentRow}`; // Reference to Account Name in column A
       const monthEndDate = `EOMONTH(${headerCol}$${bsHeaderRow}, 0)`; // Last day of month
 
-      // GL columns: A=Date, H=Account Name, J=Debit, K=Credit (inverted logic for liabilities)
+      // Date-aware formula for Liabilities (inverted from Assets):
+      // 1. If month end = as-of date: show exact starting balance
+      // 2. If month end < as-of date: work backwards (reverse transactions: subtract credits, add debits)
+      // 3. If month end > as-of date: work forwards (add net change from as-of to month-end)
       const formula =
         `=IF(INT(${monthEndDate})=INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0)), ` +
+        // Exact match: show starting balance
         `IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 3, FALSE), 0), ` +
         `IF(${monthEndDate}<IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0), ` +
+        // Month ends BEFORE as-of date: reverse transactions (subtract credits, add debits)
         `IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 3, FALSE), 0) - ` +
-        `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(${monthEndDate}), ` +
         `'General Ledger'!$A:$A, "<="&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0))) + ` +
-        `SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(${monthEndDate}), ` +
         `'General Ledger'!$A:$A, "<="&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0))), ` +
+        // Month ends AFTER as-of date: add net change from as-of to month-end
         `IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 3, FALSE), 0) + ` +
-        `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0)), ` +
         `'General Ledger'!$A:$A, "<="&INT(${monthEndDate})) - ` +
-        `SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$H:$H, ${accountRef}, ` +
+        `SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$F:$F, ${accountRef}, ` +
         `'General Ledger'!$A:$A, ">"&INT(IFERROR(VLOOKUP(${accountRef}, 'General Ledger'!$A$${accountConfigStartRow}:$D$${accountConfigEndRow}, 4, FALSE), 0)), ` +
-        `'General Ledger'!$A:$A, "<="&INT(${monthEndDate}))))`);
+        `'General Ledger'!$A:$A, "<="&INT(${monthEndDate}))))`;
 
       sheet.getRange(currentRow, 3 + monthIdx).setFormula(formula);
     });
@@ -1059,10 +968,10 @@ function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, heade
 
       // Calculate net change from General Ledger: Credits - Debits (increase is positive)
       sheet.getRange(currentRow, 3 + monthIdx).setFormula(
-        `=SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$H:$H, ${accountCell}, ` +
+        `=SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$F:$F, ${accountCell}, ` +
         `'General Ledger'!$A:$A, ">="&${headerCol}$${cfHeaderRow}, ` +
         `'General Ledger'!$A:$A, "<="&INT(EOMONTH(${headerCol}$${cfHeaderRow}, 0))) - ` +
-        `SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$H:$H, ${accountCell}, ` +
+        `SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$F:$F, ${accountCell}, ` +
         `'General Ledger'!$A:$A, ">="&${headerCol}$${cfHeaderRow}, ` +
         `'General Ledger'!$A:$A, "<="&INT(EOMONTH(${headerCol}$${cfHeaderRow}, 0)))`
       );
@@ -1219,10 +1128,10 @@ function setupFinancialStatementsV3(sheet, ledgerSheet, transactionsSheet, heade
       // For each cash account, sum (Debits - Credits) from General Ledger
       const cashChanges = cashAccountNames.map(accountName => {
         const bsRowNum = cashAccountBalanceSheetRows[accountName];
-        return `(SUMIFS('General Ledger'!$J:$J, 'General Ledger'!$H:$H, $A${bsRowNum}, ` +
+        return `(SUMIFS('General Ledger'!$H:$H, 'General Ledger'!$F:$F, $A${bsRowNum}, ` +
                `'General Ledger'!$A:$A, ">="&${headerCol}$${cfHeaderRow}, ` +
                `'General Ledger'!$A:$A, "<="&INT(EOMONTH(${headerCol}$${cfHeaderRow}, 0))) - ` +
-               `SUMIFS('General Ledger'!$K:$K, 'General Ledger'!$H:$H, $A${bsRowNum}, ` +
+               `SUMIFS('General Ledger'!$I:$I, 'General Ledger'!$F:$F, $A${bsRowNum}, ` +
                `'General Ledger'!$A:$A, ">="&${headerCol}$${cfHeaderRow}, ` +
                `'General Ledger'!$A:$A, "<="&INT(EOMONTH(${headerCol}$${cfHeaderRow}, 0))))`;
       });
