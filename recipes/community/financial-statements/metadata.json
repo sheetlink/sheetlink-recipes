@@ -1,7 +1,7 @@
 {
   "id": "financial-statements",
   "name": "Financial Statements",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "author": "Rudy",
   "type": "community",
   "source": "community",
@@ -18,7 +18,7 @@
     ]
   },
   "outputs": [
-    "Chart of Accounts, General Ledger, Financial Statements"
+    "Guide, Category Mapping, General Ledger, Financial Statements"
   ],
   "files": [
     "recipe.gs"
@@ -35,5 +35,5 @@
     "general-ledger"
   ],
   "screenshots": [],
-  "changelog": "2.1.0: Converted to standalone format"
+  "changelog": "3.0.0: Guide tab, GL-sourced category deduplication, category mapping persistence, batched FS builds, manual override preservation"
 }
