@@ -35,3 +35,6 @@ Temporary Items
 # Testing
 test/
 *.test.gs
+
+# Claude Code context (internal)
+CLAUDE.md
